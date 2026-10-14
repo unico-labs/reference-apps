@@ -10,7 +10,8 @@
 # Local tool files
 .idea/
 .vscode/
-.claude/
+.claude/*
+!.claude/skills/
 .cursor/
 .DS_Store
 
