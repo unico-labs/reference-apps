@@ -1,0 +1,28 @@
+# Credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+
+# Local tool files
+.idea/
+.vscode/
+.claude/
+.cursor/
+.DS_Store
+
+# Build
+node_modules/
+dist/
+build/
+.gradle/
+local.properties
+DerivedData/
+xcuserdata/
+Pods/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies

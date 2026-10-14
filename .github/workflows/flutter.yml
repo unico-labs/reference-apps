@@ -1,0 +1,26 @@
+name: flutter
+
+on:
+  push:
+    branches: [main]
+    paths: [flutter/**, .github/workflows/flutter.yml]
+  pull_request:
+    paths: [flutter/**, .github/workflows/flutter.yml]
+
+defaults:
+  run:
+    working-directory: flutter
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - if: hashFiles('flutter/pubspec.yaml') != ''
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test

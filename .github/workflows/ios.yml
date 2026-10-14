@@ -1,0 +1,21 @@
+name: ios
+
+on:
+  push:
+    branches: [main]
+    paths: [ios/**, .github/workflows/ios.yml]
+  pull_request:
+    paths: [ios/**, .github/workflows/ios.yml]
+
+defaults:
+  run:
+    working-directory: ios
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      # ponytail: no Xcode project yet, the iOS app task sets -project/-scheme here
+      - if: hashFiles('ios/**/project.pbxproj') != ''
+        run: xcodebuild build -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
