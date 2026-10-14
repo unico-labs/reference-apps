@@ -8,7 +8,7 @@ Using a coding agent? Point it at [`AGENTS.md`](AGENTS.md).
 
 | Stack | Folder | Journey mode | Status |
 |---|---|---|---|
-| Node backend | [`backend/`](backend/) | n/a | Planned |
+| Node backend | [`backend/`](backend/) | n/a | Available |
 | Web (vanilla JS) | [`web/`](web/) | Direct Access, Journeys SDK | Planned |
 | Android (Jetpack Compose) | [`android/`](android/) | Direct Access (WebView) | Planned |
 | iOS (SwiftUI) | [`ios/`](ios/) | Direct Access (WKWebView) | Planned |

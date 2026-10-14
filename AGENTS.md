@@ -11,7 +11,7 @@ The documentation is the source of truth. Start at https://developer.unico.io/ll
 ## Layout
 
 ```text
-backend/   Node: token, create process, get process, get selfie
+backend/   Node: token, create process, get process, selfie and evidence set
 web/       vanilla JS, talks to the backend
 android/   Jetpack Compose
 ios/       SwiftUI
