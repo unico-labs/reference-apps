@@ -15,7 +15,7 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # ponytail: no Xcode project yet, the iOS app task sets -project/-scheme here
       - if: hashFiles('ios/**/project.pbxproj') != ''
         run: xcodebuild build -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
