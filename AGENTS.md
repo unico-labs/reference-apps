@@ -34,7 +34,7 @@ Each journey mode under `journey/` is self-contained. To port a mode, take only 
 
 ## Picking a flow
 
-Pick by use case (sign-up or step-up) and region (Global, Brazil, Mexico). The flows table and the Flows page in the docs are the reference.
+Pick by use case (sign-up or step-up) and region (Global, Brazil, Mexico). [`flows.json`](flows.json) mirrors the [Flows](https://developer.unico.io/developers/start/flows) page in the docs, with each flow's region, group, capabilities and extra form fields. Each app embeds an identical copy, and CI fails if a copy drifts from the root file.
 
 ## Hard rules
 

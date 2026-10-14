@@ -1,0 +1,20 @@
+name: flows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  copies-match:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: jq empty flows.json
+      # ponytail: any tracked file named flows.json is a copy, no per-stack path list to maintain
+      - run: |
+          status=0
+          for copy in $(git ls-files '*/flows.json'); do
+            cmp -s flows.json "$copy" || { echo "::error file=$copy::differs from root flows.json"; status=1; }
+          done
+          exit $status
