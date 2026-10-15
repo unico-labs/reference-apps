@@ -1,0 +1,21 @@
+<%- include('partials/head', { title: 'Result' }) %>
+<h1>Result</h1>
+<% if (!locals.process) { %>
+<p>No process in this browser yet. <a href="/">Pick a flow</a> to create one.</p>
+<% } else { %>
+<h2>GET /client/v1/process/{id}</h2>
+<pre class="code"><%= process %></pre>
+
+<h2>GET /client/v1/process/{id}/selfie</h2>
+<% if (selfie.src) { %>
+<img id="selfie" alt="Selfie captured in the journey" src="<%= selfie.src %>" />
+<% } else { %>
+<pre class="code"><%= selfie.error %></pre>
+<% } %>
+
+<h2>GET /client/v1/process/{id}/evidenceset</h2>
+<p><a href="/result/evidenceset" target="_blank">Open evidence set (PDF)</a></p>
+
+<p><a href="/">Run another flow</a></p>
+<% } %>
+<%- include('partials/foot') %>

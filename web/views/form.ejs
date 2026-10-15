@@ -1,0 +1,155 @@
+<%- include('partials/head', { title: flow.id }) %>
+<h1 class="mono"><%= flow.id %></h1>
+<p class="hint"><%= flow.capabilities.join(' · ') %></p>
+<p class="notice">Use your own document. There are no test documents: the journey checks a real face against it.</p>
+<% if (error) { %>
+<pre class="code"><%= error %></pre>
+<% } %>
+
+<form method="post" enctype="multipart/form-data">
+  <fieldset>
+    <legend>Person</legend>
+    <label>
+      Document type
+      <!-- https://developer.unico.io/developers/api-reference/post-processes (duiType values) -->
+      <select name="duiType" required>
+        <option>DUI_TYPE_BR_CPF</option>
+        <option>DUI_TYPE_MX_CURP</option>
+        <option>DUI_TYPE_AR_DNI</option>
+        <option>DUI_TYPE_AR_LNC</option>
+        <option>DUI_TYPE_AR_PASSPORT</option>
+        <option>DUI_TYPE_AT_STNR</option>
+        <option>DUI_TYPE_BE_NN</option>
+        <option>DUI_TYPE_BR_CNPJ</option>
+        <option>DUI_TYPE_BR_PASSPORT</option>
+        <option>DUI_TYPE_CA_SIN</option>
+        <option>DUI_TYPE_CH_AHV</option>
+        <option>DUI_TYPE_CL_LICENCIA_CONDUCIR</option>
+        <option>DUI_TYPE_CL_PASSPORT</option>
+        <option>DUI_TYPE_CL_RUN</option>
+        <option>DUI_TYPE_CO_CC</option>
+        <option>DUI_TYPE_CO_LICENCIA_CONDUCCION</option>
+        <option>DUI_TYPE_CO_NIT</option>
+        <option>DUI_TYPE_CO_PASSPORT</option>
+        <option>DUI_TYPE_DE_IDNR</option>
+        <option>DUI_TYPE_DK_CPR</option>
+        <option>DUI_TYPE_EC_NI</option>
+        <option>DUI_TYPE_ES_DNI</option>
+        <option>DUI_TYPE_ES_NIE</option>
+        <option>DUI_TYPE_FI_HETU</option>
+        <option>DUI_TYPE_FR_SPI</option>
+        <option>DUI_TYPE_GB_NINO</option>
+        <option>DUI_TYPE_GT_CUI</option>
+        <option>DUI_TYPE_ID_NIK</option>
+        <option>DUI_TYPE_IE_PPSN</option>
+        <option>DUI_TYPE_IT_CF</option>
+        <option>DUI_TYPE_LK_NIC</option>
+        <option>DUI_TYPE_LU_MATRICULE</option>
+        <option>DUI_TYPE_MX_LICENCIA_CONDUCIR</option>
+        <option>DUI_TYPE_MX_RFC_PERSONA_FISICA</option>
+        <option>DUI_TYPE_NG_BVN</option>
+        <option>DUI_TYPE_NG_BVN_TOKEN</option>
+        <option>DUI_TYPE_NG_NIN</option>
+        <option>DUI_TYPE_NG_NIN_TOKEN</option>
+        <option>DUI_TYPE_NL_BSN</option>
+        <option>DUI_TYPE_NO_FNR</option>
+        <option>DUI_TYPE_PE_DNI</option>
+        <option>DUI_TYPE_PE_PASSPORT</option>
+        <option>DUI_TYPE_PE_RUC</option>
+        <option>DUI_TYPE_PL_PESEL</option>
+        <option>DUI_TYPE_PT_NIF</option>
+        <option>DUI_TYPE_SE_PNR</option>
+        <option>DUI_TYPE_SE_SAMORDNINGSNUMMER</option>
+        <option>DUI_TYPE_TR_TCKN</option>
+        <option>DUI_TYPE_US_DRIVER_LICENSE</option>
+        <option>DUI_TYPE_US_ID_CARD</option>
+        <option>DUI_TYPE_US_PASSPORT</option>
+        <option>DUI_TYPE_US_PASSPORT_CARD</option>
+        <option>DUI_TYPE_US_POLYCARBONATE_PASSPORT</option>
+        <option>DUI_TYPE_US_SSN</option>
+        <option>DUI_TYPE_UY_CI</option>
+        <option>DUI_TYPE_ZZ_EMAIL</option>
+        <option>DUI_TYPE_ZZ_PHONE_NUMBER</option>
+      </select>
+    </label>
+    <label>Your document <input name="duiValue" required placeholder="Numbers only, no formatting" /></label>
+    <label>Name <input name="friendlyName" maxlength="50" placeholder="Optional" /></label>
+    <label>Email <input name="email" type="email" placeholder="Optional" /></label>
+    <label>Phone <input name="phone" inputmode="numeric" placeholder="Optional, e.g. 5511999999999" /></label>
+  </fieldset>
+
+  <% if (flow.extraFields.includes('document')) { %>
+  <fieldset>
+    <legend>Document for Face Document Match</legend>
+    <label>Document images <input name="documentFiles" type="file" multiple accept="image/*,application/pdf" /></label>
+    <label>
+      Document purpose
+      <select name="documentPurpose">
+        <option>DOCUMENT_PURPOSE_ONBOARDING</option>
+        <option>DOCUMENT_PURPOSE_CREDIT_PROCESS</option>
+        <option>DOCUMENT_PURPOSE_CAR_PURCHASE</option>
+        <option>DOCUMENT_PURPOSE_PAY_BY_PAYCHECK</option>
+        <option>DOCUMENT_PURPOSE_FGTS</option>
+      </select>
+    </label>
+    <p class="hint">Optional.</p>
+  </fieldset>
+  <% } %>
+
+  <% if (flow.extraFields.includes('useCase')) { %>
+  <fieldset>
+    <legend>Smart Revalidation</legend>
+    <label>
+      useCase
+      <input name="useCase" list="use-cases" required />
+      <datalist id="use-cases">
+        <option>USE_CASE_LOGIN</option>
+        <option>USE_CASE_FIN_TRANSACTIONS</option>
+      </datalist>
+    </label>
+    <label>Onboarding process ID <input name="referenceProcessId" required placeholder="Process to revalidate against" /></label>
+  </fieldset>
+  <% } %>
+
+  <details>
+    <summary>Advanced</summary>
+    <label>expiresIn <input name="expiresIn" pattern="\d+s" placeholder="3600s (default: 7 days)" /></label>
+    <label>
+      purpose
+      <select name="purpose">
+        <option value="">Not set</option>
+        <option>biometryonboarding</option>
+        <option>creditprocess</option>
+        <option>carpurchase</option>
+        <option>ageverification</option>
+      </select>
+    </label>
+    <fieldset>
+      <legend>contextualization</legend>
+      <label>company_name <input name="companyName" maxlength="20" /></label>
+      <label>
+        currency
+        <select name="currency">
+          <option value="">Not set</option>
+          <option>BRL</option>
+          <option>MXN</option>
+          <option>USD</option>
+        </select>
+      </label>
+      <label>price <input name="price" type="number" min="0" step="0.01" /></label>
+      <label>
+        reason locale
+        <select name="locale">
+          <option>ptBr</option>
+          <option>enUs</option>
+          <option>esMx</option>
+        </select>
+      </label>
+      <label>reason <input name="reason" maxlength="50" /></label>
+    </fieldset>
+  </details>
+
+  <p class="hint">Create process and open with</p>
+  <button type="submit">Direct Access · Redirect</button>
+</form>
+<%- include('partials/foot') %>

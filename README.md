@@ -8,13 +8,10 @@ Using a coding agent? Point it at [`AGENTS.md`](AGENTS.md).
 
 | Stack | Folder | Journey mode | Status |
 |---|---|---|---|
-| Node backend | [`backend/`](backend/) | n/a | Available |
-| Web (vanilla JS) | [`web/`](web/) | Direct Access, Journeys SDK | Planned |
-| Android (Jetpack Compose) | [`android/`](android/) | Direct Access (WebView) | Planned |
-| iOS (SwiftUI) | [`ios/`](ios/) | Direct Access (WKWebView) | Planned |
-| Flutter | [`flutter/`](flutter/) | Direct Access (WebView) | Planned |
-
-Native SDK (SDK-S) support on mobile comes in a later phase.
+| Web (Node + Express, server-rendered) | [`web/`](web/) | Direct Access, Journeys SDK | Direct Access available |
+| Android (Jetpack Compose) | [`android/`](android/) | Native SDK | Planned |
+| iOS (SwiftUI) | [`ios/`](ios/) | Native SDK | Planned |
+| Flutter | [`flutter/`](flutter/) | Native SDK | Planned |
 
 ## Credentials
 
@@ -22,7 +19,7 @@ To run the apps you need a Unico service account: account, tenant and `.pem` key
 
 Ask your Unico sales contact or the Unico Onboarding team for one. See [Authentication](https://developer.unico.io/developers/start/authentication) for how it works and [Environments](https://developer.unico.io/developers/start/environments) for the hosts of each environment.
 
-Never commit the key. In production it lives only on the backend.
+Never commit the key. In production it lives only on your server.
 
 ## License
 

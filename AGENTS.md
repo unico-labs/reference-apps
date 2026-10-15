@@ -4,15 +4,14 @@ Rules for coding agents (Claude Code, Codex, Cursor, Copilot and others) that re
 
 ## What this repo is
 
-Reference apps for integrating with the **Unico API**, the primary, recommended path. There is one app per stack (web, Android, iOS, Flutter) plus a Node backend, and they all share the same folder layout.
+Reference apps for integrating with the **Unico API**, the primary, recommended path. There is one app per stack (web, Android, iOS, Flutter), and they all share the same folder layout.
 
 The documentation is the source of truth. Start at https://developer.unico.io/llms.txt. If an app and the docs disagree, the app is wrong and gets fixed. If the docs are wrong, the docs get fixed first.
 
 ## Layout
 
 ```text
-backend/   Node: token, create process, get process, selfie and evidence set
-web/       vanilla JS, talks to the backend
+web/       Express server: renders the EJS pages, holds the service account, redirects to the journey
 android/   Jetpack Compose
 ios/       SwiftUI
 flutter/   Flutter
@@ -22,15 +21,15 @@ Inside each app:
 
 | Folder | Contents |
 |---|---|
-| `settings/` | Environment (UAT/PROD). On web, the backend URL. On mobile, demo-mode credentials |
+| `settings/` | Environment (UAT/PROD) and credentials. On web, the server's `.env`. On mobile, demo-mode credentials |
 | `flows/` | Sign-up × Step-up menu, region filter and the create-process form |
-| `journey/direct-access/` | Opens the journey from its link: redirect on web, WebView on mobile |
+| `journey/direct-access/` | Web only: same-tab redirect to the journey link |
 | `journey/journeys-sdk/` | Web only: `unico-journey-sdk` with the widget |
-| `journey/sdk-s/` | Mobile only: native SDK (coming later) |
-| `result/` | Raw JSON from `GET /process/{id}` and the selfie |
-| `api/` | On web, calls to the backend. On mobile, direct calls to Unico in demo mode |
+| `journey/native-sdk/` | Mobile only: Unico's native SDK, opened with the `webAppToken` |
+| `result/` | Raw JSON from `GET /process/{id}`, the selfie and the evidence set |
+| `api/` | Calls to Unico. On web, made by the server. On mobile, made from the device in demo mode |
 
-Each journey mode under `journey/` is self-contained. To port a mode, take only that folder and don't mix it with the others.
+Each journey mode under `journey/` is self-contained. Use the apps as a reference, not as code to copy: read the mode you need in its folder alone and write it your own way.
 
 ## Picking a flow
 
@@ -38,11 +37,11 @@ Pick by use case (sign-up or step-up) and region (Global, Brazil, Mexico). [`flo
 
 ## Hard rules
 
-- Production credentials live only on the backend. In production, use a backend and never store the key on the device.
+- Production credentials live only on a server. In production, use one and never store the key on the device or in the browser.
 - Don't copy code marked as demo.
 - After the callback, make a single `GET` for the process. No polling, no webhook.
 - Never run the Journeys SDK inside a WebView.
-- In native apps, the WebView loads only the journey link, with no JS injection and no bridge, and grants only camera access to the Unico origin.
+- On mobile, open the journey with the native SDK. Never in a WebView, Custom Tabs or the system browser.
 - The client always creates the process.
 - Show the API response as it came back, without interpreting it.
 - Never commit credentials, `.pem` keys or `.env` files.

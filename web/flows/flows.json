@@ -1,0 +1,20 @@
+[
+  { "id": "idlive_r2", "group": "sign-up", "region": "global", "capabilities": ["Liveness"], "extraFields": [] },
+  { "id": "id_r2", "group": "sign-up", "region": "global", "capabilities": ["Liveness", "Identity Verification"], "extraFields": [] },
+  { "id": "idlivetrust_r2", "group": "sign-up", "region": "global", "capabilities": ["Liveness", "Fraud Risk Classification"], "extraFields": [] },
+  { "id": "idtrust_r2", "group": "sign-up", "region": "global", "capabilities": ["Liveness", "Identity Verification", "Fraud Risk Classification"], "extraFields": [] },
+  { "id": "idunicodocs_r2", "group": "sign-up", "region": "global", "capabilities": ["Liveness", "Identity Verification", "Face Document Match"], "extraFields": ["document"] },
+  { "id": "idtrustdocs_r2", "group": "sign-up", "region": "global", "capabilities": ["Liveness", "Identity Verification", "Fraud Risk Classification", "Face Document Match"], "extraFields": ["document"] },
+  { "id": "idcheck_r2", "group": "sign-up", "region": "brazil", "capabilities": ["Liveness", "Identity Verification", "Risk Score"], "extraFields": [] },
+  { "id": "iddocs_r2", "group": "sign-up", "region": "brazil", "capabilities": ["Liveness", "Identity Verification", "Risk Score", "Face Document Match"], "extraFields": ["document"] },
+  { "id": "idchecktrust_r2", "group": "sign-up", "region": "brazil", "capabilities": ["Liveness", "Identity Verification", "Risk Score", "Fraud Risk Classification"], "extraFields": [] },
+  { "id": "idchecktrustdocs_r2", "group": "sign-up", "region": "brazil", "capabilities": ["Liveness", "Identity Verification", "Risk Score", "Fraud Risk Classification", "Face Document Match"], "extraFields": ["document"] },
+  { "id": "idcheckserpro_r2", "group": "sign-up", "region": "brazil", "capabilities": ["Liveness", "Identity Verification", "Risk Score", "Serpro Similarity"], "extraFields": [] },
+  { "id": "idcheckserprodocs_r2", "group": "sign-up", "region": "brazil", "capabilities": ["Liveness", "Identity Verification", "Risk Score", "Serpro Similarity", "Face Document Match"], "extraFields": ["document"] },
+  { "id": "idage_r2", "group": "sign-up", "region": "brazil", "capabilities": ["Liveness", "Age Verification"], "extraFields": [] },
+  { "id": "idagedocumentless_r2", "group": "sign-up", "region": "brazil", "capabilities": ["Liveness", "Age Verification"], "extraFields": [] },
+  { "id": "idtrust_r2-idgov", "group": "sign-up", "region": "mexico", "capabilities": ["Liveness", "Identity Verification", "Fraud Risk Classification", "RENAPO Verification"], "extraFields": [] },
+  { "id": "idtrustdocs_r2-idgov", "group": "sign-up", "region": "mexico", "capabilities": ["Liveness", "Identity Verification", "Fraud Risk Classification", "Face Document Match", "RENAPO Verification"], "extraFields": ["document"] },
+  { "id": "idsmart_r2", "group": "step-up", "region": "global", "capabilities": ["Smart Revalidation"], "extraFields": ["useCase", "references"] },
+  { "id": "idsmart_tp1", "group": "step-up", "region": "global", "capabilities": ["Smart Revalidation", "Fraud Risk Classification"], "extraFields": ["useCase", "references"] }
+]

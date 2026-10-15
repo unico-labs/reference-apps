@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { generateKeyPairSync, verify } from 'node:crypto';
 import { createServer } from 'node:http';
 import { after, before, beforeEach, test } from 'node:test';
-import { createUnico, InvalidInputError, UnicoError } from '../src/unico.js';
+import { createUnico, InvalidInputError, UnicoError } from '../api/unico.js';
 
 const { privateKey, publicKey } = generateKeyPairSync('rsa', {
   modulusLength: 2048,
@@ -41,12 +41,12 @@ before(async () => {
       ],
       'GET /client/v1/process/abc-123': [200, { process: { id: 'abc-123', state: 'PROCESS_STATE_FINISHED' } }],
       'GET /client/v1/process/abc-123/selfie': [200, { fileContents: '/9j/4AAQ', contentType: 'image/jpeg' }],
-      'GET /client/v1/process/abc-123/evidenceset': [
-        200,
-        { fileContents: 'JVBERi0xLjMN', contentType: 'application/pdf' },
-      ],
+      'GET /client/v1/process/abc-123/evidenceset': [200, { fileContents: 'JVBERi0xLjMN', contentType: 'x-pdf' }],
     };
-    const [status, payload] = routes[`${req.method} ${req.url}`] ?? [404, { code: 5, message: 'process not found' }];
+    const [status, payload] = routes[`${req.method} ${req.url}`] ?? [
+      404,
+      { code: 5, message: 'error getting process: rpc error: code = NotFound desc = process not found' },
+    ];
     res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(payload));
   });
@@ -91,7 +91,7 @@ test('exchanges a signed RS256 JWT for an access token', async () => {
 });
 
 test('creates a process sending the body as JSON with the bearer token', async () => {
-  const body = { flow: 'idlive_r2', callbackUri: 'http://localhost:8080' };
+  const body = { flow: 'idlive_r2', callbackUri: 'http://localhost:3000/result' };
 
   const { process } = await unico().createProcess(body);
 
@@ -113,7 +113,15 @@ test('gets a process, its selfie and its evidence set', async () => {
 
   assert.equal(process.state, 'PROCESS_STATE_FINISHED');
   assert.deepEqual(selfie, { fileContents: '/9j/4AAQ', contentType: 'image/jpeg' });
-  assert.deepEqual(evidenceSet, { fileContents: 'JVBERi0xLjMN', contentType: 'application/pdf' });
+  assert.deepEqual(evidenceSet, { fileContents: 'JVBERi0xLjMN', contentType: 'x-pdf' });
+});
+
+test('shares one token request between concurrent calls', async () => {
+  const client = unico();
+
+  await Promise.all([client.getProcess('abc-123'), client.getSelfie('abc-123')]);
+
+  assert.equal(tokenRequests.length, 1);
 });
 
 test('reuses the token while it is far from expiring', async () => {
@@ -145,13 +153,22 @@ const rejectsWith = (promise, status, body) =>
   });
 
 test('throws API errors with their status and body', async () => {
-  await rejectsWith(unico().getProcess('missing'), 404, { code: 5, message: 'process not found' });
+  await rejectsWith(unico().getProcess('missing'), 404, {
+    code: 5,
+    message: 'error getting process: rpc error: code = NotFound desc = process not found',
+  });
 });
 
 test('throws a token failure with the identity status and body', async () => {
-  tokenResponse = { status: 401, body: () => ({ code: '1.2.22', message: 'invalid claim' }) };
+  tokenResponse = {
+    status: 401,
+    body: () => ({ error: 'server_error', error_description: 'Falha na autenticação (1.2.5)' }),
+  };
 
-  await rejectsWith(unico().getProcess('abc-123'), 401, { code: '1.2.22', message: 'invalid claim' });
+  await rejectsWith(unico().getProcess('abc-123'), 401, {
+    error: 'server_error',
+    error_description: 'Falha na autenticação (1.2.5)',
+  });
   assert.equal(apiRequests.length, 0);
 });
 
@@ -180,5 +197,6 @@ test('rejects a malformed process id without calling the API', async () => {
   await assert.rejects(client.getProcess('../../oauth2'), invalid);
   await assert.rejects(client.getSelfie('../../oauth2'), invalid);
   await assert.rejects(client.getEvidenceSet('../../oauth2'), invalid);
+  await assert.rejects(client.getProcess(undefined), invalid);
   assert.equal(apiRequests.length, 0);
 });

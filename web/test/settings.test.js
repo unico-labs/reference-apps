@@ -18,7 +18,7 @@ const { privateKey, publicKey } = generateKeyPairSync('rsa', {
 const startWithKey = (name, contents) => {
   const path = join(dir, name);
   writeFileSync(path, contents);
-  return spawnSync(process.execPath, ['src/server.js'], {
+  return spawnSync(process.execPath, ['server.js'], {
     env: { ...process.env, UNICO_SERVICE_ACCOUNT: 'my-account@abc123.iam.acesso.io', UNICO_PRIVATE_KEY_PATH: path },
     encoding: 'utf8',
     timeout: 5000,

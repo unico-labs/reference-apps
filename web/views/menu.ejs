@@ -1,0 +1,27 @@
+<%- include('partials/head', { title: 'Flows' }) %>
+<%
+  const groups = { 'sign-up': 'Sign-up', 'step-up': 'Step-up' };
+  const regions = { all: 'All', global: 'Global', brazil: 'Brazil', mexico: 'Mexico' };
+%>
+<h1>Flows</h1>
+<nav class="tabs" aria-label="Use case">
+  <% for (const [key, label] of Object.entries(groups)) { %>
+  <a href="/flows?group=<%= key %>&region=<%= region %>" aria-current="<%= key === group ? 'page' : 'false' %>"><%= label %></a>
+  <% } %>
+</nav>
+<nav class="chips" aria-label="Region">
+  <% for (const [key, label] of Object.entries(regions)) { %>
+  <a href="/flows?group=<%= group %>&region=<%= key %>" aria-current="<%= key === region ? 'page' : 'false' %>"><%= label %></a>
+  <% } %>
+</nav>
+<ul class="flow-list">
+  <% for (const flow of flows) { %>
+  <li>
+    <a href="/flows/<%= flow.id %>"><code><%= flow.id %></code><span><%= flow.region %> · <%= flow.capabilities.join(' · ') %></span></a>
+  </li>
+  <% } %>
+  <% if (!flows.length) { %>
+  <li>No <%= group %> flows for this region.</li>
+  <% } %>
+</ul>
+<%- include('partials/foot') %>

@@ -32,17 +32,16 @@ async function readJson(res) {
 
 // Ids are interpolated into the URL, so anything like `../` is refused before calling Unico.
 function processId(id) {
-  if (!/^[\w-]+$/.test(id)) throw new InvalidInputError('invalid process id');
+  if (typeof id !== 'string' || !/^[\w-]+$/.test(id)) throw new InvalidInputError('invalid process id');
   return id;
 }
 
 export function createUnico({ serviceAccount, privateKey, hosts }) {
   let cached;
+  let pending;
 
   // https://developer.unico.io/developers/start/authentication
-  async function token() {
-    if (cached && Date.now() < cached.renewAt) return cached.accessToken;
-
+  async function requestToken() {
     const now = Math.floor(Date.now() / 1000);
     const assertion = jwt.sign(
       { iss: serviceAccount, aud: hosts.identity, scope: '*', iat: now, exp: now + 3600 },
@@ -60,6 +59,16 @@ export function createUnico({ serviceAccount, privateKey, hosts }) {
 
     cached = { accessToken: data.access_token, renewAt: Date.now() + data.expires_in * 1000 - RENEW_BEFORE_MS };
     return data.access_token;
+  }
+
+  function token() {
+    if (cached && Date.now() < cached.renewAt) return Promise.resolve(cached.accessToken);
+    // Concurrent callers share one request. Two assertions signed in the same second are identical,
+    // and Unico refuses a reused JWT (error 1.2.7).
+    pending ??= requestToken().finally(() => {
+      pending = undefined;
+    });
+    return pending;
   }
 
   async function call(method, path, body) {
@@ -81,6 +90,7 @@ export function createUnico({ serviceAccount, privateKey, hosts }) {
     // https://developer.unico.io/developers/api-reference/get-selfie → { fileContents, contentType }
     getSelfie: async (id) => call('GET', `/client/v1/process/${processId(id)}/selfie`),
     // https://developer.unico.io/developers/api-reference/get-evidence-set → { fileContents, contentType }
+    // fileContents is a base64 PDF. contentType comes back as "x-pdf", not "application/pdf": don't send it to a browser as is.
     getEvidenceSet: async (id) => call('GET', `/client/v1/process/${processId(id)}/evidenceset`),
   };
 }

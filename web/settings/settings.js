@@ -1,0 +1,42 @@
+// Server settings, read from environment variables (see .env.example). The service account key stays here,
+// on the server: the browser only ever gets HTML and a redirect.
+import { createPrivateKey } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { HOSTS } from '../api/unico.js';
+
+function fail(message) {
+  console.error(message);
+  process.exit(1);
+}
+
+// A key copied from an email or a JSON payload often loses its line breaks. jsonwebtoken would only
+// fail on the first request, with "must be an asymmetric key", so check the key at startup instead.
+function loadPrivateKey(path) {
+  const pem = readFileSync(path, 'utf8');
+  try {
+    return createPrivateKey(pem);
+  } catch {
+    const header = pem.match(/-----BEGIN ([A-Z ]+)-----/)?.[1];
+    fail(
+      `UNICO_PRIVATE_KEY_PATH is not a PEM private key (${header ? `found: ${header}` : 'no PEM header'}). ` +
+        'It should start with -----BEGIN PRIVATE KEY----- and keep its original line breaks.',
+    );
+  }
+}
+
+export function loadSettings(env) {
+  const { UNICO_ENV = 'uat', UNICO_SERVICE_ACCOUNT, UNICO_PRIVATE_KEY_PATH, PORT = '3000' } = env;
+  if (!HOSTS[UNICO_ENV] || !UNICO_SERVICE_ACCOUNT || !UNICO_PRIVATE_KEY_PATH) {
+    fail('Set UNICO_ENV (uat or prod), UNICO_SERVICE_ACCOUNT and UNICO_PRIVATE_KEY_PATH. See .env.example.');
+  }
+
+  return {
+    env: UNICO_ENV,
+    hosts: HOSTS[UNICO_ENV],
+    serviceAccount: UNICO_SERVICE_ACCOUNT,
+    privateKey: loadPrivateKey(UNICO_PRIVATE_KEY_PATH),
+    port: Number(PORT),
+    // Where browsers reach this app. It builds the callbackUri, so it must be the address users actually see.
+    publicUrl: (env.PUBLIC_URL ?? `http://localhost:${PORT}`).replace(/\/+$/, ''),
+  };
+}
