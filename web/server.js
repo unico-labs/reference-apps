@@ -14,10 +14,10 @@ const banner = `
 ▀█▄    ▄█▀ ██      ██ ██ ▀█▄    ▄▄▄ ▀█▄    ▄█▀
  ▀▀████▀▀  ██      ██ ██  ▀▀████▀▀   ▀▀████▀▀`;
 
-createApp({ unico, publicUrl: settings.publicUrl }).listen(settings.port, () =>
+createApp({ unico, publicUrl: settings.publicUrl, env: settings.env }).listen(settings.port, () =>
   console.log(`${banner}
 
-  Web reference app · Direct Access
+  Web reference app
   Unico ${settings.env.toUpperCase()}
 
   Open ${styleText('bold', settings.publicUrl)}

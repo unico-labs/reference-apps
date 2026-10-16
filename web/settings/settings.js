@@ -1,5 +1,5 @@
 // Server settings, read from environment variables (see .env.example). The service account key stays here,
-// on the server: the browser only ever gets HTML and a redirect.
+// on the server: the browser only gets HTML, a redirect, or the process id and token for the Journeys SDK.
 import { createPrivateKey } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { HOSTS } from '../api/unico.js';

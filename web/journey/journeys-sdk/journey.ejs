@@ -1,0 +1,41 @@
+<%- include('../../views/partials/head', { title: 'Journey' }) %>
+<h1>Journey</h1>
+<p id="journey" class="hint" data-process-id="<%= processId %>" data-token="<%= token %>" data-env="<%= env %>">
+  Opening the journey…
+</p>
+<p id="closed" hidden>You closed the journey before finishing. <a href="/">Pick a flow</a> to start again.</p>
+<!-- Maps the package name to the file the server serves, so the import reads as it would with a bundler. -->
+<script type="importmap">
+  { "imports": { "unico-journey-sdk": "/journeys-sdk/unico-journey-sdk.js" } }
+</script>
+<script type="module">
+  import { ByUnicoSDK } from 'unico-journey-sdk';
+
+  const status = document.getElementById('journey');
+  const { processId, token, env } = status.dataset;
+
+  // If the widget doesn't open, check the browser console. "Domain not allowed" means the page's domain isn't
+  // registered for this environment in your account's console panel (HTTPS only).
+  // The SDK only logs it: nothing throws, so the catch below never sees it.
+  try {
+    // env 'uat' points the SDK at the test environment. Without it, the SDK uses production.
+    await ByUnicoSDK.init(env === 'uat' ? { token, env } : { token });
+    ByUnicoSDK.open({
+      transactionId: processId,
+      token,
+      onFinish: ({ type }) => {
+        // FINISH: the journey ended (transaction = { id, redirectUrl }). The result page makes the one GET.
+        if (type === 'FINISH') location.assign('/result');
+        // CLOSE: the user closed the widget before finishing.
+        else document.getElementById('closed').hidden = false;
+      },
+      // Hide or move your own overlays while the widget is on screen.
+      onWidgetVisibilityChange: (visible) => {
+        status.textContent = visible ? 'Journey open in the widget.' : 'Widget hidden.';
+      },
+    });
+  } catch (error) {
+    status.textContent = `The SDK did not start: ${error}`;
+  }
+</script>
+<%- include('../../views/partials/foot') %>

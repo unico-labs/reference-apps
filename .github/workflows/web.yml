@@ -25,3 +25,13 @@ jobs:
           npm run lint
           npm run build --if-present
           npm test --if-present
+      # Each journey mode lives in its own folder. Delete one at a time and check the app still works without it.
+      - if: hashFiles('web/package.json') != ''
+        run: |
+          for mode in journey/*/; do
+            copy="$RUNNER_TEMP/without-$(basename "$mode")"
+            cp -R . "$copy"
+            rm -rf "$copy/$mode"
+            echo "Testing without $mode"
+            (cd "$copy" && npm test)
+          done

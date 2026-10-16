@@ -150,6 +150,8 @@
   </details>
 
   <p class="hint">Create process and open with</p>
-  <button type="submit">Direct Access · Redirect</button>
+  <% for (const [name, journey] of journeys) { %>
+  <button type="submit" name="journey" value="<%= name %>"><%= journey.label %></button>
+  <% } %>
 </form>
 <%- include('partials/foot') %>

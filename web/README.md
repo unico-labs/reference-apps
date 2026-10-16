@@ -1,6 +1,6 @@
 # Web (Node + Express, server-rendered)
 
-One Express server that renders the pages from EJS templates in [`views/`](views/), holds the Unico service account and opens the journey with Direct Access: it answers the form with a redirect to the journey, and Unico sends the user back to its `/result` page, which shows the process JSON, the selfie and the evidence set PDF as returned.
+One Express server that renders the pages from EJS templates in [`views/`](views/), holds the Unico service account and opens the journey in the mode picked on the form: Direct Access, a redirect to the journey, or the Journeys SDK (`unico-journey-sdk`), which opens it as a widget on the app's own page. Both end on the `/result` page, which shows the process JSON, the selfie and the evidence set PDF as returned.
 
 > **The service account key lives on the server.** Never ship it in a web page or an app: anything sent to a browser or a device is public.
 
@@ -20,6 +20,8 @@ npm start
 ```
 
 Open http://localhost:3000, pick a flow and fill in the form with your own document.
+
+The Journeys SDK only opens on a domain registered in your account's console panel for the environment you use, over HTTPS. If the widget doesn't open, check the browser console: `Domain not allowed` means the domain isn't registered. The SDK doesn't throw, so the page shows no error. Close DevTools before the capture: the capture treats open DevTools as a fraud signal and blocks the submission.
 
 ## Test
 

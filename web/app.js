@@ -1,19 +1,26 @@
 // Routes of the web app. Every page is rendered here, on the server, which also talks to Unico:
 //   GET  /                 flows menu (?group=sign-up|step-up&region=all|global|brazil|mexico)
 //   GET  /flows/{id}       create-process form
-//   POST /flows/{id}       creates the process and redirects to the journey (Direct Access)
+//   POST /flows/{id}       creates the process and opens the journey with the mode named in `journey`
 //   GET  /result           the callbackUri: process JSON and selfie
 //   GET  /result/evidenceset   evidence set PDF
+// Each journey mode adds its own routes from its folder in journey/.
 // Pages are EJS templates in views/. <%= %> escapes every value, so nothing Unico or the user sends is read as markup.
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import express from 'express';
 import { InvalidInputError, UnicoError } from './api/unico.js';
 import { buildProcessBody, filterFlows } from './flows/flows.js';
-import { openJourney } from './journey/direct-access/direct-access.js';
 import { describe, processIdFrom, rememberProcess, sendEvidenceSet, showResult } from './result/result.js';
 
 const flows = JSON.parse(await readFile(new URL('./flows/flows.json', import.meta.url)));
+
+// Every folder in journey/ is a mode, loaded from the module of the same name. Deleting a folder removes the
+// mode and its button, and the rest of the app keeps working.
+const journeys = new Map();
+for (const entry of await readdir(new URL('./journey/', import.meta.url), { withFileTypes: true })) {
+  if (entry.isDirectory()) journeys.set(entry.name, await import(`./journey/${entry.name}/${entry.name}.js`));
+}
 
 // Create Process carries base64 documents and reference images. The docs don't set a request size limit,
 // so 15 MB is a judgment call with room for a few document files. Lower it if your flows send no documents.
@@ -35,12 +42,14 @@ async function readFields(req) {
   return { ...Object.fromEntries(form), documentFiles };
 }
 
-export function createApp({ unico, publicUrl }) {
+export function createApp({ unico, publicUrl, env }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('views', `${import.meta.dirname}/views`);
   app.set('view engine', 'ejs');
   app.use(express.static(`${import.meta.dirname}/public`));
+  app.locals.journeys = journeys;
+  for (const journey of journeys.values()) journey.register?.(app);
 
   app.get(['/', '/flows'], (req, res) => {
     const { group = 'sign-up', region = 'all' } = req.query;
@@ -72,12 +81,14 @@ export function createApp({ unico, publicUrl }) {
     } catch {
       return res.status(400).type('text').send('Bad request: expected a form (multipart/form-data or urlencoded)');
     }
+    const journey = journeys.get(fields.journey);
+    if (!journey) return res.status(400).type('text').send('Bad request: unknown journey mode');
 
     try {
       const body = buildProcessBody(res.locals.flow, fields, `${publicUrl}/result`);
       const { process } = await unico.createProcess(body);
       rememberProcess(res, process.id, publicUrl);
-      openJourney(res, process.userRedirectUrl);
+      journey.openJourney(res, process, { env });
     } catch (err) {
       res.status(err instanceof UnicoError ? err.status : 502).render('form', { error: describe(err) });
     }
