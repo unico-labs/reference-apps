@@ -29,18 +29,15 @@ struct SettingsScreen: View {
             }
 
             Section {
-                TextField("Service account", text: $settings.account)
-                TextField("Tenant", text: $settings.tenant)
+                TextField("Unique account name", text: $settings.account)
+                TextField("Tenant ID", text: $settings.tenant)
             } header: {
-                Text("Service account")
+                Text("Credentials")
             } footer: {
-                Text("Signs as \(settings.serviceAccount)")
-            }
-
-            Section {
-                TextField("SDK key", text: $settings.sdkKey)
-            } footer: {
-                Text("Linked by Unico to this app's Bundle Identifier (\(Bundle.main.bundleIdentifier ?? "")) and Team ID")
+                // The JWT iss is built from these two: https://developer.unico.io/developers/start/authentication
+                Text(settings.account.isEmpty || settings.tenant.isEmpty
+                    ? "iss: <account_name>@<tenant_id>.iam.acesso.io"
+                    : "iss: \(settings.serviceAccount)")
             }
 
             Section("Private key (.pem)") {
@@ -51,6 +48,13 @@ struct SettingsScreen: View {
                 )
                 .font(.caption.monospaced())
                 .lineLimit(4...8)
+            }
+
+            Section {
+                TextField("SDK key", text: $settings.sdkKey)
+                TextField("Bundle Identifier", text: $settings.bundleIdentifier)
+            } footer: {
+                Text("The SDK key is issued for a Bundle Identifier and Team ID. This build is \(Bundle.main.bundleIdentifier ?? ""). Change it only to try a key issued for another ID.")
             }
 
             if let error { Text(error).foregroundStyle(.red) }

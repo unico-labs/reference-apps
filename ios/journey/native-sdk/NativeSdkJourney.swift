@@ -16,11 +16,13 @@ private enum JourneyState {
     case ended(String)
 }
 
-// `sdkKey` comes from Unico's Onboarding team, linked to this app's Bundle Identifier and Team ID.
+// `sdkKey` comes from Unico's Onboarding team, linked to `bundleIdentifier` and your Team ID. In a real app that's
+// your own Bundle.main.bundleIdentifier; this demo lets Settings override it.
 // `environment` must match the hosts the process was created on: .UAT or .PROD.
 struct NativeSdkJourney: View {
     let webAppToken: String
     let sdkKey: String
+    let bundleIdentifier: String
     let environment: EnvironmentEnum
     let onFinished: (_ processId: String) -> Void
     let onBack: () -> Void
@@ -77,7 +79,7 @@ struct NativeSdkJourney: View {
     }
 
     private func open() {
-        let session = JourneySession(host: host, sdkKey: sdkKey, webAppToken: webAppToken) { outcome in
+        let session = JourneySession(host: host, sdkKey: sdkKey, bundleIdentifier: bundleIdentifier, webAppToken: webAppToken) { outcome in
             switch outcome {
             case .finished(let processId): onFinished(processId)
             case .cameraDenied: state = .cameraDenied
@@ -101,14 +103,16 @@ private final class JourneySession: NSObject {
 
     private let host: UIViewController
     private let sdkKey: String
+    private let bundleIdentifier: String
     private let webAppToken: String
     private let onEnd: (Outcome) -> Void
     private var manager: AcessoBioManager?
     private var ended = false
 
-    init(host: UIViewController, sdkKey: String, webAppToken: String, onEnd: @escaping (Outcome) -> Void) {
+    init(host: UIViewController, sdkKey: String, bundleIdentifier: String, webAppToken: String, onEnd: @escaping (Outcome) -> Void) {
         self.host = host
         self.sdkKey = sdkKey
+        self.bundleIdentifier = bundleIdentifier
         self.webAppToken = webAppToken
         self.onEnd = onEnd
     }
@@ -148,7 +152,7 @@ private final class JourneySession: NSObject {
 }
 
 extension JourneySession: AcessoBioConfigDataSource {
-    nonisolated func getBundleIdentifier() -> String { Bundle.main.bundleIdentifier ?? "" }
+    nonisolated func getBundleIdentifier() -> String { bundleIdentifier }
     nonisolated func getHostKey() -> String { sdkKey }
 }
 

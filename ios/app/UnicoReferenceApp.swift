@@ -85,6 +85,7 @@ private struct Root: View {
             NativeSdkJourney(
                 webAppToken: webAppToken,
                 sdkKey: settings.sdkKey,
+                bundleIdentifier: settings.bundleIdentifier,
                 // The SDK environment follows the hosts in Settings: PROD hosts open the PROD journey, anything else UAT.
                 environment: settings.hosts == .prod ? .PROD : .UAT,
                 // Back from the result goes to the flows menu, not to the form or the journey.

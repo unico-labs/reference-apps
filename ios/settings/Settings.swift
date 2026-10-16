@@ -15,6 +15,9 @@ struct Settings: Equatable, CustomStringConvertible {
     // Issued by Unico's Onboarding team for your Bundle Identifier and Team ID:
     // https://developer.unico.io/developers/sdks-and-tools/ios/installation/specific-setup
     var sdkKey = ""
+    // The Bundle Identifier the SDK key was issued for. Defaults to this build's own (see load());
+    // editable only so a demo can try a key issued for another ID.
+    var bundleIdentifier = ""
     var privateKeyPem = ""
 
     var hosts: Hosts { Hosts(identity: trimSlash(identityHost), api: trimSlash(apiHost)) }
@@ -23,7 +26,7 @@ struct Settings: Equatable, CustomStringConvertible {
     var serviceAccount: String { "\(account)@\(tenant).iam.acesso.io" }
 
     var isComplete: Bool {
-        [identityHost, apiHost, account, tenant, sdkKey, privateKeyPem].allSatisfy { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        [identityHost, apiHost, account, tenant, sdkKey, bundleIdentifier, privateKeyPem].allSatisfy { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
     // Keeps the key out of logs and crash reports.
@@ -97,6 +100,7 @@ struct SettingsStore {
         settings.account = defaults.string(forKey: "account") ?? ""
         settings.tenant = defaults.string(forKey: "tenant") ?? ""
         settings.sdkKey = defaults.string(forKey: "sdkKey") ?? ""
+        settings.bundleIdentifier = defaults.string(forKey: "bundleIdentifier") ?? Bundle.main.bundleIdentifier ?? ""
         settings.privateKeyPem = readKey() ?? ""
         return settings
     }
@@ -107,6 +111,7 @@ struct SettingsStore {
         defaults.set(settings.account, forKey: "account")
         defaults.set(settings.tenant, forKey: "tenant")
         defaults.set(settings.sdkKey, forKey: "sdkKey")
+        defaults.set(settings.bundleIdentifier, forKey: "bundleIdentifier")
         SecItemDelete(keychainItem as CFDictionary)
         var item = keychainItem
         item[kSecValueData] = Data(settings.privateKeyPem.utf8)

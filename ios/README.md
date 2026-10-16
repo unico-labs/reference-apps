@@ -8,7 +8,7 @@ One SwiftUI app that creates a process, opens the journey with Unico's native SD
 
 Requires a Mac with Xcode 16 or later, [XcodeGen](https://github.com/yonaskolb/XcodeGen), an **iPhone** (the SDK refuses simulators) and:
 
-- a service account for UAT: account, tenant and `.pem` key. See the root [README](../README.md#credentials);
+- UAT credentials: unique account name, tenant ID and `.pem` private key, as in [Authentication](https://developer.unico.io/developers/start/authentication). The app builds the JWT `iss` from the first two; See the root [README](../README.md#credentials);
 - an SDK key from Unico's Onboarding team, linked to the app's Bundle Identifier and Team ID. Set `PRODUCT_BUNDLE_IDENTIFIER` and `DEVELOPMENT_TEAM` in [`project.yml`](project.yml) to the ones Unico linked.
 
 The Xcode project is generated from `project.yml`, so it stays readable in review:
@@ -21,7 +21,7 @@ open UnicoReference.xcodeproj
 
 Xcode fetches the SDK through Swift Package Manager. Pick your iPhone and run.
 
-On the device, fill in Settings: the hosts come filled in with UAT, then the service account, tenant, SDK key and the `.pem` key, imported from Files or pasted. Pick a flow, fill in the form with your own document and tap **Native SDK**.
+On the device, fill in Settings: the hosts come filled in with UAT, then the unique account name, tenant ID, SDK key and the `.pem` key, imported from Files or pasted. Pick a flow, fill in the form with your own document and tap **Native SDK**.
 
 ## Test
 
