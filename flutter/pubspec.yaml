@@ -1,0 +1,38 @@
+name: unico_reference
+description: "Unico API reference app: creates a process, opens the journey with the native SDK, shows the result."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Unico's official Flutter plugin: the native SDK that opens the journey with the webAppToken.
+  # https://developer.unico.io/developers/sdks-and-tools/flutter/installation
+  unico_check: ^4.63.0
+  # RS256 JWT for the token request (demo only, see api/unico.dart). The Dart counterpart of jsonwebtoken in the docs.
+  dart_jsonwebtoken: ^3.4.1
+  http: ^1.6.0
+  # Demo credentials in the Android Keystore / iOS Keychain.
+  flutter_secure_storage: ^11.2.0
+  # Importing the .pem and the document images.
+  file_selector: ^1.1.0
+  # Asking for the camera before the journey, and the way to the app's settings when it's denied.
+  permission_handler: ^13.0.2
+  # The evidence set PDF drawn in-app with the platform's renderer, from a temporary file.
+  pdfx: ^2.11.0
+  path_provider: ^2.1.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  pointycastle: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  # Copy of the root flows.json. CI fails if it drifts.
+  assets:
+    - flows/flows.json
