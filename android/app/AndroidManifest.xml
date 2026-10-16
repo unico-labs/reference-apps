@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- https://developer.unico.io/developers/sdks-and-tools/android/installation (step 5) -->
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- allowBackup="false": the demo keeps credentials on the device, so app data stays out of backups. -->
+    <application
+        android:allowBackup="false"
+        android:label="Unico API reference"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <!-- configChanges: Compose redraws on rotation by itself. Keeping the activity alive also keeps
+             the result screen from making its one GET again and the journey from opening twice. -->
+        <activity
+            android:name=".app.MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|density|uiMode|locale|layoutDirection|fontScale"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

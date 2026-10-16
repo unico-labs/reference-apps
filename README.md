@@ -9,7 +9,7 @@ Using a coding agent? Point it at [`AGENTS.md`](AGENTS.md).
 | Stack | Folder | Journey mode | Status |
 |---|---|---|---|
 | Web (Node + Express, server-rendered) | [`web/`](web/) | Direct Access, Journeys SDK | Direct Access available |
-| Android (Jetpack Compose) | [`android/`](android/) | Native SDK | Planned |
+| Android (Jetpack Compose) | [`android/`](android/) | Native SDK | Native SDK available |
 | iOS (SwiftUI) | [`ios/`](ios/) | Native SDK | Planned |
 | Flutter | [`flutter/`](flutter/) | Native SDK | Planned |
 
