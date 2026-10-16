@@ -1,0 +1,34 @@
+# XcodeGen spec for the app: `xcodegen generate` writes UnicoReference.xcodeproj (not committed).
+# One target, rooted here, so the source folders match the layout shared by every app in this repo
+# (settings/, flows/, journey/native-sdk/, result/, api/). app/ holds the App, navigation and Info.plist.
+name: UnicoReference
+options:
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  # https://developer.unico.io/developers/sdks-and-tools/ios/installation (Swift Package Manager)
+  UnicoCheck:
+    url: https://github.com/acesso-io/unico-check-ios.git
+    exactVersion: 3.4.0
+
+targets:
+  UnicoReference:
+    type: application
+    platform: iOS
+    sources: [app, settings, flows, journey/native-sdk, result, api]
+    dependencies:
+      - package: UnicoCheck
+        product: unicocheck-ios-spm
+    settings:
+      base:
+        # The native SDK only opens for the Bundle Identifier and Team ID that Unico linked to your SDK key:
+        # https://developer.unico.io/developers/sdks-and-tools/ios/installation/specific-setup
+        # Change both to yours before running.
+        PRODUCT_BUNDLE_IDENTIFIER: io.unico.reference
+        DEVELOPMENT_TEAM: ""
+        INFOPLIST_FILE: app/Info.plist
+        SWIFT_VERSION: "6.0"
+        # iPhone only: the SDK's capture screen runs in portrait.
+        TARGETED_DEVICE_FAMILY: "1"
+    scheme: {}

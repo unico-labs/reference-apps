@@ -25,6 +25,9 @@ build/
 local.properties
 DerivedData/
 xcuserdata/
+.build/
+.swiftpm/
+ios/UnicoReference.xcodeproj/
 Pods/
 .dart_tool/
 .flutter-plugins
