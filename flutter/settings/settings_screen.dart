@@ -69,20 +69,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 12),
         field('API host', settings.apiHost, (v) => settings = settings.copyWith(apiHost: v)),
         const SizedBox(height: 12),
-        field('Service account', settings.account, (v) => settings = settings.copyWith(account: v)),
+        field('Unique account name', settings.account, (v) => settings = settings.copyWith(account: v)),
         const SizedBox(height: 12),
+        // The JWT iss is built from these two: https://developer.unico.io/developers/start/authentication
         field(
-          'Tenant',
+          'Tenant ID',
           settings.tenant,
           (v) => settings = settings.copyWith(tenant: v),
-          helper: 'Signs as ${settings.serviceAccount}',
-        ),
-        const SizedBox(height: 12),
-        field(
-          'SDK key',
-          settings.sdkKey,
-          (v) => settings = settings.copyWith(sdkKey: v),
-          helper: "Linked by Unico to this app's bundle ID / application ID",
+          helper: settings.account.isEmpty || settings.tenant.isEmpty
+              ? 'iss: <account_name>@<tenant_id>.iam.acesso.io'
+              : 'iss: ${settings.serviceAccount}',
         ),
         const SizedBox(height: 16),
         Text('Private key (.pem)', style: text.titleMedium),
@@ -103,6 +99,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 : 'Saved. Paste or import to replace it',
             border: const OutlineInputBorder(),
           ),
+        ),
+        const SizedBox(height: 12),
+        field(
+          'SDK key',
+          settings.sdkKey,
+          (v) => settings = settings.copyWith(sdkKey: v),
+          helper: 'Issued by Unico for the bundle ID / application ID below',
+        ),
+        const SizedBox(height: 12),
+        field(
+          'Bundle ID / application ID',
+          settings.bundleIdentifier,
+          (v) => settings = settings.copyWith(bundleIdentifier: v),
+          helper: 'This build is $buildBundleIdentifier. Change it only to try a key issued for another ID',
         ),
         if (error != null) ...[
           const SizedBox(height: 12),

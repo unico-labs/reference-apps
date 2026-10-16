@@ -14,10 +14,6 @@ import '../result/result_screen.dart';
 import '../settings/settings.dart';
 import '../settings/settings_screen.dart';
 
-// The SDK key is linked to this ID. Keep it equal to applicationId in android/app/build.gradle.kts and
-// PRODUCT_BUNDLE_IDENTIFIER in the iOS project, and change all three to the one Unico linked to your key.
-const bundleIdentifier = 'io.unico.reference';
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final flows = parseFlows(await rootBundle.loadString('flows/flows.json'));
@@ -103,7 +99,7 @@ class _ReferenceAppState extends State<ReferenceApp> {
     NativeSdkJourney(
       webAppToken: webAppToken,
       sdkKey: settings.sdkKey,
-      bundleIdentifier: bundleIdentifier,
+      bundleIdentifier: settings.bundleIdentifier,
       environment: environment,
       // Replaces the form and the journey, so Back from the result goes to the flows menu.
       onFinished: (processId) => navigator.pushAndRemoveUntil(resultPage(processId), (r) => r.isFirst),

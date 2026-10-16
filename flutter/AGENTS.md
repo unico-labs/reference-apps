@@ -15,13 +15,13 @@ One Flutter app with Material 3 and a plain `Navigator`. It creates the process,
 | Path | What it does | How to use it |
 |---|---|---|
 | `api/unico.dart` | Unico client: JWT, access token, Create Process, Get Process, selfie, evidence set. `package:http` and `dart_jsonwebtoken`, no Flutter. `UnicoError` with status and body | **Demo only on a device.** Reference for the calls and error handling; in production this runs on your server (compare `web/api/unico.js`) |
-| `settings/` | Settings screen and storage: hosts (UAT prefilled), account, tenant, SDK key, `.pem` imported or pasted. Everything goes to `flutter_secure_storage`: Android Keystore, iOS Keychain with "this device only". `allowBackup="false"` on Android | **Demo only.** Don't carry it over: your app holds no service account key. Only the SDK key belongs in a real app |
+| `settings/` | Settings screen and storage: hosts (UAT prefilled), unique account name, tenant ID (the `iss` is built from them), SDK key, `.pem` imported or pasted. Everything goes to `flutter_secure_storage`: Android Keystore, iOS Keychain with "this device only". `allowBackup="false"` on Android | **Demo only.** Don't carry it over: your app holds no service account key. Only the SDK key belongs in a real app |
 | `flows/flows.dart` | Parses `flows.json`, filters flows, builds the Create Process body from form values | Reference for mapping your data to the Create Process body |
 | `flows/flows.json` | Copy of the root `flows.json`, declared as an asset. CI fails if it drifts | Reference for which flows exist and the fields each one needs |
 | `flows/flows_screen.dart`, `flows/form_screen.dart` | Sign-up × Step-up menu with region filter, and the create-process form | Reference for your own screens |
 | `journey/native-sdk/` | Asks for the camera, opens `unico_check` with the `webAppToken`, returns the `processId` from `onSuccess`, and sends the user to Settings when the camera is denied. Imports nothing from the other folders | Reference for opening the journey in Flutter |
 | `result/` | One `GET` for the process and one for the selfie, shown raw; the evidence set fetched when opened and drawn in-app with `pdfx` | Reference for the calls after `onSuccess` |
-| `app/main.dart` | Navigation, the demo banner, and `bundleIdentifier` | Glue; the navigation is yours |
+| `app/main.dart` | Navigation and the demo banner | Glue; the navigation is yours |
 | `android/`, `ios/` | Platform projects: application ID, camera permission, Unico's Maven repository, ProGuard rules, `allowBackup="false"` | Compare with your own platform setup |
 | `test/` | Dart VM tests for `api/` against a local fake of Unico, and for `flows/flows.dart` | Reference for testing your client |
 

@@ -8,8 +8,8 @@ One Flutter app that creates a process, opens the journey with Unico's official 
 
 Requires the current stable Flutter, a **physical device** (the SDK refuses emulators and simulators) with its toolchain (Android SDK, or Xcode with CocoaPods for iOS) and:
 
-- a service account for UAT: account, tenant and `.pem` key. See the root [README](../README.md#credentials);
-- an SDK key from Unico's Onboarding team, linked to the app's ID: package name and SHA-256 for Android, bundle ID and Team ID for iOS. This app uses `io.unico.reference` for both. Change it in [`android/app/build.gradle.kts`](android/app/build.gradle.kts) (`applicationId`), in the iOS project (`PRODUCT_BUNDLE_IDENTIFIER`) and in [`app/main.dart`](app/main.dart) (`bundleIdentifier`) to the one Unico linked.
+- UAT credentials: unique account name, tenant ID and `.pem` private key, as in [Authentication](https://developer.unico.io/developers/start/authentication). The app builds the JWT `iss` from the first two; See the root [README](../README.md#credentials);
+- an SDK key from Unico's Onboarding team, linked to the app's ID: package name and SHA-256 for Android, bundle ID and Team ID for iOS. This app uses `io.unico.reference` for both. Change it in [`android/app/build.gradle.kts`](android/app/build.gradle.kts) (`applicationId`), in the iOS project (`PRODUCT_BUNDLE_IDENTIFIER`) and in [`settings/settings.dart`](settings/settings.dart) (`buildBundleIdentifier`) to the one Unico linked. For a demo, Settings also lets you type another ID without rebuilding.
 
 The entry point is `app/main.dart`, so the sources sit in the same folders as every other app in this repo. Pass it with `-t`:
 
@@ -18,7 +18,7 @@ flutter pub get
 flutter run -t app/main.dart
 ```
 
-On the device, fill in Settings: the hosts come filled in with UAT, then the service account, tenant, SDK key and the `.pem` key, imported from a file or pasted. Pick a flow, fill in the form with your own document and tap **Native SDK**.
+On the device, fill in Settings: the hosts come filled in with UAT, then the unique account name, tenant ID, SDK key and the `.pem` key, imported from a file or pasted. Pick a flow, fill in the form with your own document and tap **Native SDK**.
 
 Building from Xcode.app instead of `flutter run`: `permission_handler` can't find `Info.plist` there and reports the camera as denied. Set `PERMISSION_HANDLER_INFO_PLIST` to the full path of `ios/Runner/Info.plist` (see the plugin's README).
 

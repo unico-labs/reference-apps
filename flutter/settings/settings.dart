@@ -10,6 +10,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../api/unico.dart';
 
+// This build's ID. Keep it equal to applicationId in android/app/build.gradle.kts and PRODUCT_BUNDLE_IDENTIFIER
+// in the iOS project, and change all three to the one Unico linked to your SDK key.
+// ponytail: a constant instead of package_info_plus; read it at runtime if the IDs ever differ per platform.
+const buildBundleIdentifier = 'io.unico.reference';
+
 class Settings {
   // Defaults are Hosts.uat, spelled out because a default value has to be a constant.
   const Settings({
@@ -18,6 +23,7 @@ class Settings {
     this.account = '',
     this.tenant = '',
     this.sdkKey = '',
+    this.bundleIdentifier = buildBundleIdentifier,
     this.privateKeyPem = '',
   });
 
@@ -28,6 +34,9 @@ class Settings {
   // Issued by Unico's Onboarding team for your app's bundle ID / application ID:
   // https://developer.unico.io/developers/sdks-and-tools/flutter/installation
   final String sdkKey;
+  // The ID the SDK key was issued for. Defaults to this build's own; editable only so a demo can try a key
+  // issued for another ID.
+  final String bundleIdentifier;
   final String privateKeyPem;
 
   Hosts get hosts => Hosts(identity: _trimSlash(identityHost), api: _trimSlash(apiHost));
@@ -35,8 +44,15 @@ class Settings {
   // The `iss` claim: https://developer.unico.io/developers/start/authentication
   String get serviceAccount => '$account@$tenant.iam.acesso.io';
 
-  bool get isComplete =>
-      [identityHost, apiHost, account, tenant, sdkKey, privateKeyPem].every((v) => v.trim().isNotEmpty);
+  bool get isComplete => [
+    identityHost,
+    apiHost,
+    account,
+    tenant,
+    sdkKey,
+    bundleIdentifier,
+    privateKeyPem,
+  ].every((v) => v.trim().isNotEmpty);
 
   Settings copyWith({
     String? identityHost,
@@ -44,6 +60,7 @@ class Settings {
     String? account,
     String? tenant,
     String? sdkKey,
+    String? bundleIdentifier,
     String? privateKeyPem,
   }) => Settings(
     identityHost: identityHost ?? this.identityHost,
@@ -51,6 +68,7 @@ class Settings {
     account: account ?? this.account,
     tenant: tenant ?? this.tenant,
     sdkKey: sdkKey ?? this.sdkKey,
+    bundleIdentifier: bundleIdentifier ?? this.bundleIdentifier,
     privateKeyPem: privateKeyPem ?? this.privateKeyPem,
   );
 
@@ -98,6 +116,7 @@ class SettingsStore {
       account: v['account'] ?? '',
       tenant: v['tenant'] ?? '',
       sdkKey: v['sdkKey'] ?? '',
+      bundleIdentifier: v['bundleIdentifier'] ?? defaults.bundleIdentifier,
       privateKeyPem: v['privateKey'] ?? '',
     );
   }
@@ -108,6 +127,7 @@ class SettingsStore {
     await _storage.write(key: 'account', value: settings.account);
     await _storage.write(key: 'tenant', value: settings.tenant);
     await _storage.write(key: 'sdkKey', value: settings.sdkKey);
+    await _storage.write(key: 'bundleIdentifier', value: settings.bundleIdentifier);
     await _storage.write(key: 'privateKey', value: settings.privateKeyPem);
   }
 }
