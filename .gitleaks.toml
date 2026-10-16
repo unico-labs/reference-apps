@@ -1,0 +1,11 @@
+# Default gitleaks rules, plus one allowlist for code that parses or builds PEM keys.
+# A PEM marker followed by "." (an error message) or by "\n\(" (Swift string interpolation) never starts a real key.
+# A real key, in a .pem file or pasted into JSON or .env with literal "\n", is still caught.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "PEM markers in code that parses or builds keys, not key material"
+targetRules = ["private-key"]
+regexTarget = "match"
+regexes = ['''-----BEGIN PRIVATE KEY-----(\.|\\n\\\()''']
