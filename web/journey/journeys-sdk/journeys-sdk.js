@@ -5,7 +5,7 @@
 // The Express calls below are glue for this demo. The part to learn from is the script in journey.ejs.
 import { fileURLToPath } from 'node:url';
 
-export const label = 'Journeys SDK · Widget';
+export const label = 'Journeys SDK';
 
 // The SDK's ES module build has no imports, so the browser loads it as is from node_modules, without a bundler.
 const sdkFile = fileURLToPath(import.meta.resolve('unico-journey-sdk/index.esm.js'));
@@ -15,6 +15,6 @@ export function register(app) {
 }
 
 // Only the process id and its token reach the page. The service account key stays on the server.
-export function openJourney(res, process, { env }) {
-  res.render(`${import.meta.dirname}/journey.ejs`, { processId: process.id, token: process.token, env });
+export function openJourney(res, process, { env, flow }) {
+  res.render(`${import.meta.dirname}/journey.ejs`, { processId: process.id, token: process.token, env, flow, label });
 }

@@ -19,7 +19,7 @@ Fill in `.env` with your service account. The server exits with a message if a v
 npm start
 ```
 
-Open http://localhost:3000, pick a flow and fill in the form with your own document.
+Open http://localhost:3000, type the name of a flow your account has (see [Flows](https://developer.unico.io/developers/start/flows)) and fill in the form with your own document. The page previews the request as you type, and Customize holds the optional and extra fields.
 
 The Journeys SDK only opens on a domain registered in your account's console panel for the environment you use, over HTTPS. If the widget doesn't open, check the browser console: `Domain not allowed` means the domain isn't registered. The SDK doesn't throw, so the page shows no error. Close DevTools before the capture: the capture treats open DevTools as a fraud signal and blocks the submission.
 

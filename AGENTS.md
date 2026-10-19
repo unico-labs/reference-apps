@@ -43,5 +43,5 @@ Pick by use case (sign-up or step-up) and region (Global, Brazil, Mexico). [`flo
 - Never run the Journeys SDK inside a WebView.
 - On mobile, open the journey with the native SDK. Never in a WebView, Custom Tabs or the system browser.
 - The client always creates the process.
-- Show the API response as it came back, without interpreting it.
+- Show the API response as it came back, without interpreting it. A screen may name the value the API returned in words (`PROCESS_RESULT_OK` as "Success") and say what to check next, but the raw response stays on screen next to it.
 - Never commit credentials, `.pem` keys or `.env` files.

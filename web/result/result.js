@@ -30,6 +30,8 @@ export async function showResult(res, unico, processId) {
   const [process, selfie] = await Promise.allSettled([unico.getProcess(processId), unico.getSelfie(processId)]);
 
   res.render('result', {
+    processId,
+    summary: process.value?.process,
     process: process.status === 'fulfilled' ? JSON.stringify(process.value, null, 2) : describe(process.reason),
     selfie:
       selfie.status === 'fulfilled'
