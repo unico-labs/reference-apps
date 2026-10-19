@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  changes:
+    runs-on: unico-linux
+    outputs:
+      web: ${{ steps.diff.outputs.web }}
+      android: ${{ steps.diff.outputs.android }}
+      ios: ${{ steps.diff.outputs.ios }}
+      flutter: ${{ steps.diff.outputs.flutter }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      # On a pull request HEAD is the merge commit and HEAD^1 is the base. A push to main runs every stack.
+      - id: diff
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            files=".github/"
+          else
+            files=$(git diff --name-only HEAD^1 HEAD)
+          fi
+          all=$(grep -q '^\.github/' <<<"$files" && echo true || echo false)
+          match() { grep -qE "$1" <<<"$files" && echo true || echo "$all"; }
+          echo "web=$(match '^(web/|biome\.json$)')" >> "$GITHUB_OUTPUT"
+          echo "android=$(match '^android/')" >> "$GITHUB_OUTPUT"
+          echo "ios=$(match '^ios/')" >> "$GITHUB_OUTPUT"
+          echo "flutter=$(match '^flutter/')" >> "$GITHUB_OUTPUT"
+
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    uses: ./.github/workflows/web.yml
+
+  android:
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
+    uses: ./.github/workflows/android.yml
+
+  ios:
+    needs: changes
+    if: needs.changes.outputs.ios == 'true'
+    uses: ./.github/workflows/ios.yml
+
+  flutter:
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true'
+    uses: ./.github/workflows/flutter.yml
+
+  # The only required check. A skipped stack counts as passing, a failed or cancelled one does not.
+  ci:
+    if: always()
+    needs: [changes, web, android, ios, flutter]
+    runs-on: unico-linux
+    steps:
+      - run: exit ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && 1 || 0 }}

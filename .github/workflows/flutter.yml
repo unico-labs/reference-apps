@@ -1,11 +1,7 @@
 name: flutter
 
 on:
-  push:
-    branches: [main]
-    paths: [flutter/**, .github/workflows/flutter.yml]
-  pull_request:
-    paths: [flutter/**, .github/workflows/flutter.yml]
+  workflow_call:
 
 defaults:
   run:
