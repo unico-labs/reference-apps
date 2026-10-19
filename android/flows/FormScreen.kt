@@ -253,7 +253,7 @@ private fun Failed(flow: String, error: String, onTryAgain: () -> Unit) = Column
     ) {
         Heading(Mark.CROSS, BadInk, BadGround, "Couldn't start the test", "$flow · process was not created")
         Card {
-            Lab("API response")
+            Lab("Response")
             Code(error)
         }
         Card {

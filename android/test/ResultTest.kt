@@ -36,4 +36,12 @@ class ResultTest {
         )
         assertEquals(null, durationSeconds(process("""{"createdAt":"2026-10-19T12:00:00Z"}""")))
     }
+
+    @Test
+    fun `leaves the duration out when a timestamp doesn't parse`() {
+        assertEquals(
+            null,
+            durationSeconds(process("""{"createdAt":"yesterday","finishedAt":"2026-10-19T12:00:38Z"}""")),
+        )
+    }
 }

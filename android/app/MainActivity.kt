@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
                 val environment = if (settings.hosts == Hosts.PROD) Environment.PROD else Environment.UAT
                 // Built on the first composition of onCreate, as the docs ask, and again only if Connect changes the environment.
                 val sdk = remember(environment) { NativeSdk(this@MainActivity, environment) }
-                // The last process created here, offered as the reference for a step-up.
+                // The last journey finished here, offered as the reference for a step-up.
                 var lastProcessId by rememberSaveable { mutableStateOf<String?>(null) }
 
                 val destination = nav.currentBackStackEntryAsState().value?.destination
@@ -129,7 +129,6 @@ class MainActivity : ComponentActivity() {
                                 try {
                                     val process = unico!!.createProcess(body).getValue("process").jsonObject
                                     val id = process.getValue("id").jsonPrimitive.content
-                                    lastProcessId = id
                                     nav.navigate(JourneyRoute(process.getValue("webAppToken").jsonPrimitive.content, body.getValue("flow").jsonPrimitive.content, id))
                                     null
                                 } catch (e: Exception) {
@@ -146,7 +145,11 @@ class MainActivity : ComponentActivity() {
                                 sdkKey = settings.sdkKey,
                                 bundleIdentifier = settings.bundleIdentifier,
                                 sdk = sdk,
-                                onFinished = { processId -> nav.navigate(ResultRoute(processId)) { popUpTo<FormRoute>() } },
+                                onFinished = { processId ->
+                                    // Only a finished journey is offered as the reference for a step-up.
+                                    lastProcessId = processId
+                                    nav.navigate(ResultRoute(processId)) { popUpTo<FormRoute>() }
+                                },
                                 onBack = { nav.popBackStack() },
                             )
                         }

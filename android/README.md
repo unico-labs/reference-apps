@@ -47,7 +47,7 @@ try {
 }
 ```
 
-`getProcess(id)` returns `{ "process": { id, state, result, ... } }`. `getSelfie(id)` and `getEvidenceSet(id)` return `{ fileContents, contentType }`, with the file in base64. Every non-2xx answer from Unico throws a `UnicoError` with the status and body as returned. A malformed process id throws an `InvalidInputError` before anything is sent. Network failures throw `IOException`.
+`accessToken()` returns the cached access token, or asks for a new one: call it to check the credentials without calling the API, as the Connect screen does. A token proves the account, tenant and key, not which flows the account has. `getProcess(id)` returns `{ "process": { id, state, result, ... } }`. `getSelfie(id)` and `getEvidenceSet(id)` return `{ fileContents, contentType }`, with the file in base64. Every non-2xx answer from Unico throws a `UnicoError` with the status and body as returned. A malformed process id throws an `InvalidInputError` before anything is sent. Network failures throw `IOException`.
 
 ## Code
 

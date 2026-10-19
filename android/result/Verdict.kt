@@ -25,5 +25,7 @@ fun verdict(process: JsonObject): Verdict {
 fun durationSeconds(process: JsonObject): Long? {
     val created = process["createdAt"]?.jsonPrimitive?.content ?: return null
     val finished = process["finishedAt"]?.jsonPrimitive?.content ?: return null
-    return Duration.between(Instant.parse(created), Instant.parse(finished)).seconds
+    // The docs say UTC without the exact format, and on older Android versions Instant.parse takes only a trailing Z.
+    // A timestamp that doesn't parse leaves the duration out instead of failing the screen.
+    return runCatching { Duration.between(Instant.parse(created), Instant.parse(finished)).seconds }.getOrNull()
 }
