@@ -9,8 +9,8 @@
     <!-- allowBackup="false": the demo keeps credentials on the device, so app data stays out of backups. -->
     <application
         android:allowBackup="false"
-        android:label="Unico API reference"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:label="Unico Reference App"
+        android:theme="@style/Theme.Reference">
 
         <!-- configChanges: Compose redraws on rotation by itself. Keeping the activity alive also keeps
              the result screen from making its one GET again and the journey from opening twice. -->

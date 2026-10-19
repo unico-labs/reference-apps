@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Before Android 12 there is no splash screen API: the window background shows while the app starts. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@android:color/white" />
+    <item android:drawable="@drawable/unico_logo" android:gravity="center" />
+</layer-list>
