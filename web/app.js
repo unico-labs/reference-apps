@@ -1,19 +1,17 @@
 // Routes of the web app. Every page is rendered here, on the server, which also talks to Unico:
-//   GET  /                 flows menu (?group=sign-up|step-up&region=all|global|brazil|mexico)
-//   GET  /flows/{id}       create-process form
-//   POST /flows/{id}       creates the process and opens the journey with the mode named in `journey`
+//   GET  /                 create-process form, the flow typed by name (?references={id} prefills a step-up)
+//   GET  /flows/flows.js   the body builder, served to the request preview on the form
+//   POST /process          creates the process and opens the journey with the mode named in `journey`
 //   GET  /result           the callbackUri: process JSON and selfie
 //   GET  /result/evidenceset   evidence set PDF
 // Each journey mode adds its own routes from its folder in journey/.
 // Pages are EJS templates in views/. <%= %> escapes every value, so nothing Unico or the user sends is read as markup.
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import express from 'express';
 import { InvalidInputError, UnicoError } from './api/unico.js';
-import { buildProcessBody, filterFlows } from './flows/flows.js';
+import { buildProcessBody } from './flows/flows.js';
 import { describe, processIdFrom, rememberProcess, sendEvidenceSet, showResult } from './result/result.js';
-
-const flows = JSON.parse(await readFile(new URL('./flows/flows.json', import.meta.url)));
 
 // Every folder in journey/ is a mode, loaded from the module of the same name. Deleting a folder removes the
 // mode and its button, and the rest of the app keeps working.
@@ -42,29 +40,32 @@ async function readFields(req) {
   return { ...Object.fromEntries(form), documentFiles };
 }
 
-export function createApp({ unico, publicUrl, env }) {
+export function createApp({ unico, publicUrl, env, serviceAccount }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('views', `${import.meta.dirname}/views`);
   app.set('view engine', 'ejs');
   app.use(express.static(`${import.meta.dirname}/public`));
   app.locals.journeys = journeys;
+  app.locals.publicUrl = publicUrl;
+  app.locals.account = serviceAccount.split('@')[0];
+  app.locals.connection = `${env.toUpperCase()} · ${app.locals.account}`;
   for (const journey of journeys.values()) journey.register?.(app);
 
-  app.get(['/', '/flows'], (req, res) => {
-    const { group = 'sign-up', region = 'all' } = req.query;
-    res.render('menu', { flows: filterFlows(flows, { group, region }), group, region });
+  app.get('/', (req, res) => {
+    // ?references={id} comes from "Try step-up" on the result page and turns the reference on. Without it, the
+    // reference still holds the last process, ready for when the user turns it on.
+    const { references } = req.query;
+    const referenceProcessId = references ?? processIdFrom(req);
+    res.render('form', {
+      values: { withReferences: Boolean(references), referenceProcessId },
+      lastProcess: Boolean(referenceProcessId),
+    });
   });
 
-  app.param('id', (_req, res, next, id) => {
-    res.locals.flow = flows.find((f) => f.id === id);
-    if (!res.locals.flow) return res.status(404).render('not-found');
-    next();
-  });
+  app.get('/flows/flows.js', (_req, res) => res.sendFile(`${import.meta.dirname}/flows/flows.js`));
 
-  app.get('/flows/:id', (_req, res) => res.render('form', { error: undefined }));
-
-  app.post('/flows/:id', async (req, res) => {
+  app.post('/process', async (req, res) => {
     // This server acts with the service account, so it only takes forms posted from its own pages.
     if (req.headers.origin && req.headers.origin !== new URL(publicUrl).origin) {
       const hint = `Forbidden: form posted from another site. Open the app at ${publicUrl} (PUBLIC_URL).`;
@@ -85,12 +86,14 @@ export function createApp({ unico, publicUrl, env }) {
     if (!journey) return res.status(400).type('text').send('Bad request: unknown journey mode');
 
     try {
-      const body = buildProcessBody(res.locals.flow, fields, `${publicUrl}/result`);
+      const body = buildProcessBody(fields, `${publicUrl}/result`);
       const { process } = await unico.createProcess(body);
       rememberProcess(res, process.id, publicUrl);
-      journey.openJourney(res, process, { env });
+      journey.openJourney(res, process, { env, flow: body.flow });
     } catch (err) {
-      res.status(err instanceof UnicoError ? err.status : 502).render('form', { error: describe(err) });
+      // Back to the form with what was typed, files aside, and the API's answer on top.
+      const { documentFiles, ...values } = fields;
+      res.status(err instanceof UnicoError ? err.status : 502).render('form', { values, error: describe(err) });
     }
   });
 

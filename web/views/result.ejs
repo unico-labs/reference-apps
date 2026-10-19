@@ -1,21 +1,77 @@
 <%- include('partials/head', { title: 'Result' }) %>
-<h1>Result</h1>
 <% if (!locals.process) { %>
-<p>No process in this browser yet. <a href="/">Pick a flow</a> to create one.</p>
+<h1>Result</h1>
+<p>No process in this browser yet. <a href="/">Run a flow</a> to create one.</p>
 <% } else { %>
-<h2>GET /client/v1/process/{id}</h2>
-<pre class="code"><%= process %></pre>
+<%
+  // The heading only names the result the API returned (https://developer.unico.io/developers/api-reference/get-process):
+  // PROCESS_RESULT_OK reads "Success" in green, a definitive negative or an error in red, anything else in grey.
+  // The JSON below stays as returned.
+  const short = (value) => value?.replace(/^PROCESS_(RESULT|STATE)_/, '');
+  const result = short(summary?.result);
+  const tone = { OK: 'ok', INVALID_IDENTITY: 'bad', ERROR: 'bad' }[result] ?? '';
+  const words = (result ?? short(summary?.state) ?? '').replaceAll('_', ' ').toLowerCase();
+  const verdict = result === 'OK' ? 'Success' : words ? words[0].toUpperCase() + words.slice(1) : 'Result';
+  const seconds = summary?.finishedAt && (new Date(summary.finishedAt) - new Date(summary.createdAt)) / 1000;
+%>
+<div class="result">
+  <div class="verdict">
+    <svg class="icon <%= tone %>" width="48" height="48" viewBox="0 0 44 44" aria-hidden="true">
+      <circle cx="22" cy="22" r="22" />
+      <% if (tone === 'ok') { %><path d="M13 22.5l6.5 6.5L31 16" /><% } else if (tone === 'bad') { %><path d="M15 15l14 14M29 15L15 29" /><% } else { %><path d="M14 22h16" /><% } %>
+    </svg>
+    <div>
+      <h1><%= verdict %></h1>
+      <% if (summary?.flow) { %><p class="hint"><code><%= summary.flow %></code><%= seconds >= 0 ? ` · ${Math.round(seconds)} s` : '' %></p><% } %>
+    </div>
+  </div>
 
-<h2>GET /client/v1/process/{id}/selfie</h2>
-<% if (selfie.src) { %>
-<img id="selfie" alt="Selfie captured in the journey" src="<%= selfie.src %>" />
-<% } else { %>
-<pre class="code"><%= selfie.error %></pre>
-<% } %>
+  <% if (summary) { %>
+  <dl class="card summary">
+    <div><dt>Process ID</dt><dd><code><%= summary.id %></code></dd></div>
+    <div><dt>State</dt><dd><code><%= short(summary.state) %></code></dd></div>
+    <div><dt>Result</dt><dd><code><%= result %></code></dd></div>
+  </dl>
+  <% } %>
 
-<h2>GET /client/v1/process/{id}/evidenceset</h2>
-<p><a href="/result/evidenceset" target="_blank">Open evidence set (PDF)</a></p>
+  <div class="card stack">
+    <p class="lab">Response</p>
+    <pre class="code"><%= process %></pre>
+  </div>
 
-<p><a href="/">Run another flow</a></p>
+  <div class="card attachments">
+    <div>
+      <% if (selfie.src) { %>
+      <img class="thumb" alt="" src="<%= selfie.src %>" />
+      <% } else { %>
+      <span class="thumb" aria-hidden="true"></span>
+      <% } %>
+      <b>Selfie</b>
+      <% if (selfie.src) { %>
+      <button type="button" class="link" onclick="document.getElementById('selfie-view').showModal()">View</button>
+      <% } %>
+    </div>
+    <% if (selfie.error) { %>
+    <pre class="code"><%= selfie.error %></pre>
+    <% } %>
+    <div>
+      <span class="thumb pdf" aria-hidden="true"></span>
+      <b>Evidence set (PDF)</b>
+      <a href="/result/evidenceset" target="_blank">Open</a>
+    </div>
+  </div>
+
+  <% if (selfie.src) { %>
+  <dialog id="selfie-view" aria-label="Selfie">
+    <img id="selfie" alt="Selfie captured in the journey" src="<%= selfie.src %>" />
+    <div class="sheet-foot"><button type="button" onclick="this.closest('dialog').close()">Close</button></div>
+  </dialog>
+  <% } %>
+
+  <div class="dock">
+    <div class="actions"><a class="button" href="/?references=<%= processId %>">Try step-up on this process</a></div>
+    <div class="actions"><a class="button secondary" href="/">Run another flow</a></div>
+  </div>
+</div>
 <% } %>
 <%- include('partials/foot') %>

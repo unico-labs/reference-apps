@@ -1,157 +1,222 @@
-<%- include('partials/head', { title: flow.id }) %>
-<h1 class="mono"><%= flow.id %></h1>
-<p class="hint"><%= flow.capabilities.join(' · ') %></p>
-<p class="notice">Use your own document. There are no test documents: the journey checks a real face against it.</p>
-<% if (error) { %>
-<pre class="code"><%= error %></pre>
+<%- include('partials/head', { title: 'Run a flow' }) %>
+<%
+  const v = locals.values ?? {};
+  // https://developer.unico.io/developers/api-reference/post-processes (duiType values)
+  const duiTypes = [
+    'DUI_TYPE_BR_CPF', 'DUI_TYPE_MX_CURP', 'DUI_TYPE_AR_DNI', 'DUI_TYPE_AR_LNC', 'DUI_TYPE_AR_PASSPORT',
+    'DUI_TYPE_AT_STNR', 'DUI_TYPE_BE_NN', 'DUI_TYPE_BR_CNPJ', 'DUI_TYPE_BR_PASSPORT', 'DUI_TYPE_CA_SIN',
+    'DUI_TYPE_CH_AHV', 'DUI_TYPE_CL_LICENCIA_CONDUCIR', 'DUI_TYPE_CL_PASSPORT', 'DUI_TYPE_CL_RUN', 'DUI_TYPE_CO_CC',
+    'DUI_TYPE_CO_LICENCIA_CONDUCCION', 'DUI_TYPE_CO_NIT', 'DUI_TYPE_CO_PASSPORT', 'DUI_TYPE_DE_IDNR', 'DUI_TYPE_DK_CPR',
+    'DUI_TYPE_EC_NI', 'DUI_TYPE_ES_DNI', 'DUI_TYPE_ES_NIE', 'DUI_TYPE_FI_HETU', 'DUI_TYPE_FR_SPI', 'DUI_TYPE_GB_NINO',
+    'DUI_TYPE_GT_CUI', 'DUI_TYPE_ID_NIK', 'DUI_TYPE_IE_PPSN', 'DUI_TYPE_IT_CF', 'DUI_TYPE_LK_NIC',
+    'DUI_TYPE_LU_MATRICULE', 'DUI_TYPE_MX_LICENCIA_CONDUCIR', 'DUI_TYPE_MX_RFC_PERSONA_FISICA', 'DUI_TYPE_NG_BVN',
+    'DUI_TYPE_NG_BVN_TOKEN', 'DUI_TYPE_NG_NIN', 'DUI_TYPE_NG_NIN_TOKEN', 'DUI_TYPE_NL_BSN', 'DUI_TYPE_NO_FNR',
+    'DUI_TYPE_PE_DNI', 'DUI_TYPE_PE_PASSPORT', 'DUI_TYPE_PE_RUC', 'DUI_TYPE_PL_PESEL', 'DUI_TYPE_PT_NIF',
+    'DUI_TYPE_SE_PNR', 'DUI_TYPE_SE_SAMORDNINGSNUMMER', 'DUI_TYPE_TR_TCKN', 'DUI_TYPE_US_DRIVER_LICENSE',
+    'DUI_TYPE_US_ID_CARD', 'DUI_TYPE_US_PASSPORT', 'DUI_TYPE_US_PASSPORT_CARD', 'DUI_TYPE_US_POLYCARBONATE_PASSPORT',
+    'DUI_TYPE_US_SSN', 'DUI_TYPE_UY_CI', 'DUI_TYPE_ZZ_EMAIL', 'DUI_TYPE_ZZ_PHONE_NUMBER',
+  ];
+  const purposes = ['biometryonboarding', 'creditprocess', 'carpurchase', 'ageverification'];
+  const pick = (current, option) => (current === option ? 'selected' : '');
+%>
+<% if (locals.error) { %>
+<section class="failed" id="failed" aria-labelledby="failed-title">
+  <div class="verdict">
+    <svg class="icon bad" width="48" height="48" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" /><path d="M15 15l14 14M29 15L15 29" /></svg>
+    <div>
+      <h1 id="failed-title">Couldn't start the test</h1>
+      <p class="hint"><code><%= v.flow %></code> · process was not created</p>
+    </div>
+  </div>
+  <div class="stack">
+    <div class="card stack">
+      <p class="lab">API response</p>
+      <pre class="code" id="api-error"><%= error %></pre>
+    </div>
+    <div class="card stack next">
+      <p class="lab">What you can do</p>
+      <p>Check the information you entered and confirm the flow is active on your account.</p>
+    </div>
+  </div>
+  <div class="dock">
+    <div class="actions">
+      <button type="button" id="try-again">Try again</button>
+    </div>
+  </div>
+</section>
 <% } %>
 
-<form method="post" enctype="multipart/form-data">
-  <fieldset>
-    <legend>Person</legend>
-    <label>
-      Document type
-      <!-- https://developer.unico.io/developers/api-reference/post-processes (duiType values) -->
-      <select name="duiType" required>
-        <option>DUI_TYPE_BR_CPF</option>
-        <option>DUI_TYPE_MX_CURP</option>
-        <option>DUI_TYPE_AR_DNI</option>
-        <option>DUI_TYPE_AR_LNC</option>
-        <option>DUI_TYPE_AR_PASSPORT</option>
-        <option>DUI_TYPE_AT_STNR</option>
-        <option>DUI_TYPE_BE_NN</option>
-        <option>DUI_TYPE_BR_CNPJ</option>
-        <option>DUI_TYPE_BR_PASSPORT</option>
-        <option>DUI_TYPE_CA_SIN</option>
-        <option>DUI_TYPE_CH_AHV</option>
-        <option>DUI_TYPE_CL_LICENCIA_CONDUCIR</option>
-        <option>DUI_TYPE_CL_PASSPORT</option>
-        <option>DUI_TYPE_CL_RUN</option>
-        <option>DUI_TYPE_CO_CC</option>
-        <option>DUI_TYPE_CO_LICENCIA_CONDUCCION</option>
-        <option>DUI_TYPE_CO_NIT</option>
-        <option>DUI_TYPE_CO_PASSPORT</option>
-        <option>DUI_TYPE_DE_IDNR</option>
-        <option>DUI_TYPE_DK_CPR</option>
-        <option>DUI_TYPE_EC_NI</option>
-        <option>DUI_TYPE_ES_DNI</option>
-        <option>DUI_TYPE_ES_NIE</option>
-        <option>DUI_TYPE_FI_HETU</option>
-        <option>DUI_TYPE_FR_SPI</option>
-        <option>DUI_TYPE_GB_NINO</option>
-        <option>DUI_TYPE_GT_CUI</option>
-        <option>DUI_TYPE_ID_NIK</option>
-        <option>DUI_TYPE_IE_PPSN</option>
-        <option>DUI_TYPE_IT_CF</option>
-        <option>DUI_TYPE_LK_NIC</option>
-        <option>DUI_TYPE_LU_MATRICULE</option>
-        <option>DUI_TYPE_MX_LICENCIA_CONDUCIR</option>
-        <option>DUI_TYPE_MX_RFC_PERSONA_FISICA</option>
-        <option>DUI_TYPE_NG_BVN</option>
-        <option>DUI_TYPE_NG_BVN_TOKEN</option>
-        <option>DUI_TYPE_NG_NIN</option>
-        <option>DUI_TYPE_NG_NIN_TOKEN</option>
-        <option>DUI_TYPE_NL_BSN</option>
-        <option>DUI_TYPE_NO_FNR</option>
-        <option>DUI_TYPE_PE_DNI</option>
-        <option>DUI_TYPE_PE_PASSPORT</option>
-        <option>DUI_TYPE_PE_RUC</option>
-        <option>DUI_TYPE_PL_PESEL</option>
-        <option>DUI_TYPE_PT_NIF</option>
-        <option>DUI_TYPE_SE_PNR</option>
-        <option>DUI_TYPE_SE_SAMORDNINGSNUMMER</option>
-        <option>DUI_TYPE_TR_TCKN</option>
-        <option>DUI_TYPE_US_DRIVER_LICENSE</option>
-        <option>DUI_TYPE_US_ID_CARD</option>
-        <option>DUI_TYPE_US_PASSPORT</option>
-        <option>DUI_TYPE_US_PASSPORT_CARD</option>
-        <option>DUI_TYPE_US_POLYCARBONATE_PASSPORT</option>
-        <option>DUI_TYPE_US_SSN</option>
-        <option>DUI_TYPE_UY_CI</option>
-        <option>DUI_TYPE_ZZ_EMAIL</option>
-        <option>DUI_TYPE_ZZ_PHONE_NUMBER</option>
-      </select>
-    </label>
-    <label>Your document <input name="duiValue" required placeholder="Numbers only, no formatting" /></label>
-    <label>Name <input name="friendlyName" maxlength="50" placeholder="Optional" /></label>
-    <label>Email <input name="email" type="email" placeholder="Optional" /></label>
-    <label>Phone <input name="phone" inputmode="numeric" placeholder="Optional, e.g. 5511999999999" /></label>
-  </fieldset>
+<div id="run"<%= locals.error ? ' hidden' : '' %>>
+<h1>Which flow do you want to test?</h1>
+<p class="hint">Type the flow name Unico gave you. If your account doesn't have it, the test fails and we show the API error.</p>
 
-  <% if (flow.extraFields.includes('document')) { %>
-  <fieldset>
-    <legend>Document for Face Document Match</legend>
-    <label>Document images <input name="documentFiles" type="file" multiple accept="image/*,application/pdf" /></label>
-    <label>
-      Document purpose
-      <select name="documentPurpose">
-        <option>DOCUMENT_PURPOSE_ONBOARDING</option>
-        <option>DOCUMENT_PURPOSE_CREDIT_PROCESS</option>
-        <option>DOCUMENT_PURPOSE_CAR_PURCHASE</option>
-        <option>DOCUMENT_PURPOSE_PAY_BY_PAYCHECK</option>
-        <option>DOCUMENT_PURPOSE_FGTS</option>
-      </select>
-    </label>
-    <p class="hint">Optional.</p>
-  </fieldset>
-  <% } %>
+<form method="post" action="/process" enctype="multipart/form-data" id="process-form" data-callback-uri="<%= publicUrl %>/result">
+  <label>
+    <span class="label">Flow <code class="api">flow</code> <span class="req" aria-hidden="true">*</span></span>
+    <input class="mono" name="flow" required value="<%= v.flow ?? '' %>" placeholder="e.g. id" autocapitalize="none" autocorrect="off" spellcheck="false" />
+    <small class="hint">Flow names are listed on the <a href="https://developer.unico.io/developers/start/flows">Flows</a> page of the Unico docs.</small>
+  </label>
+  <label>
+    <span class="label">Document type <code class="api">person.duiType</code></span>
+    <select name="duiType">
+      <% for (const type of duiTypes) { %>
+      <option <%= pick(v.duiType, type) %>><%= type %></option>
+      <% } %>
+    </select>
+  </label>
+  <label>
+    <span class="label">Document number <code class="api">person.duiValue</code></span>
+    <input name="duiValue" value="<%= v.duiValue ?? '' %>" placeholder="Numbers only, no formatting" />
+    <small class="hint">The person's own document. Leave it empty if the flow doesn't ask for one.</small>
+  </label>
 
-  <% if (flow.extraFields.includes('useCase')) { %>
-  <fieldset>
-    <legend>Smart Revalidation</legend>
-    <label>
-      useCase
-      <input name="useCase" list="use-cases" required />
-      <datalist id="use-cases">
-        <option>USE_CASE_LOGIN</option>
-        <option>USE_CASE_FIN_TRANSACTIONS</option>
-      </datalist>
-    </label>
-    <label>Onboarding process ID <input name="referenceProcessId" required placeholder="Process to revalidate against" /></label>
-  </fieldset>
-  <% } %>
+  <p class="lab">Request your backend sends</p>
+  <pre class="code" id="preview">POST /client/v1/process</pre>
 
-  <details>
-    <summary>Advanced</summary>
-    <label>expiresIn <input name="expiresIn" pattern="\d+s" placeholder="3600s (default: 7 days)" /></label>
-    <label>
-      purpose
-      <select name="purpose">
-        <option value="">Not set</option>
-        <option>biometryonboarding</option>
-        <option>creditprocess</option>
-        <option>carpurchase</option>
-        <option>ageverification</option>
-      </select>
-    </label>
-    <fieldset>
-      <legend>contextualization</legend>
-      <label>company_name <input name="companyName" maxlength="20" /></label>
-      <label>
-        currency
-        <select name="currency">
-          <option value="">Not set</option>
-          <option>BRL</option>
-          <option>MXN</option>
-          <option>USD</option>
-        </select>
+  <dialog id="customize" aria-labelledby="customize-title">
+    <div class="sheet-head">
+      <h2 id="customize-title">Customize request</h2>
+      <button type="button" class="close" aria-label="Close" onclick="this.closest('dialog').close()">×</button>
+    </div>
+    <div class="sheet-body">
+      <label><span class="label">Name <code class="api">person.friendlyName</code></span> <input name="friendlyName" maxlength="50" value="<%= v.friendlyName ?? '' %>" placeholder="Full name (optional)" /></label>
+      <div class="row">
+        <label><span class="label">Email <code class="api">person.email</code></span> <input name="email" type="email" value="<%= v.email ?? '' %>" /></label>
+        <label><span class="label">Phone <code class="api">person.phone</code></span> <input name="phone" inputmode="numeric" value="<%= v.phone ?? '' %>" placeholder="5511999999999" /></label>
+      </div>
+      <div class="row">
+        <label><span class="label">Expires in <code class="api">expiresIn</code></span> <input name="expiresIn" pattern="\d+s" value="<%= v.expiresIn ?? '' %>" placeholder="3600s" /></label>
+        <label>
+          <span class="label">Purpose <code class="api">purpose</code></span>
+          <select name="purpose">
+            <option value="">Not set</option>
+            <% for (const purpose of purposes) { %>
+            <option <%= pick(v.purpose, purpose) %>><%= purpose %></option>
+            <% } %>
+          </select>
+        </label>
+      </div>
+
+      <p class="lab">Extra fields this flow needs</p>
+      <label class="check">
+        <input type="checkbox" name="withDocument" <%= v.withDocument ? 'checked' : '' %> />
+        <span><span class="label">Document image <code class="api">document</code></span> <small class="hint">Flows with Face Document Match.</small></span>
       </label>
-      <label>price <input name="price" type="number" min="0" step="0.01" /></label>
-      <label>
-        reason locale
-        <select name="locale">
-          <option>ptBr</option>
-          <option>enUs</option>
-          <option>esMx</option>
-        </select>
+      <div class="extra">
+        <label>
+          <span class="label">Document files <code class="api">document.files</code></span>
+          <input name="documentFiles" type="file" multiple accept="image/*,application/pdf" />
+          <small class="hint">Image of the person's document, used by Face Document Match.</small>
+        </label>
+        <label>
+          <span class="label">Document purpose <code class="api">document.purpose</code></span>
+          <select name="documentPurpose">
+            <option value="">Not set</option>
+            <% for (const purpose of ['DOCUMENT_PURPOSE_ONBOARDING', 'DOCUMENT_PURPOSE_CREDIT_PROCESS', 'DOCUMENT_PURPOSE_CAR_PURCHASE', 'DOCUMENT_PURPOSE_PAY_BY_PAYCHECK', 'DOCUMENT_PURPOSE_FGTS']) { %>
+            <option <%= pick(v.documentPurpose, purpose) %>><%= purpose %></option>
+            <% } %>
+          </select>
+        </label>
+      </div>
+      <label class="check">
+        <input type="checkbox" name="withReferences" <%= v.withReferences ? 'checked' : '' %> />
+        <span><span class="label">Use case and reference <code class="api">useCase, references</code></span> <small class="hint">Step-up flows that revalidate an earlier process.</small></span>
       </label>
-      <label>reason <input name="reason" maxlength="50" /></label>
-    </fieldset>
-  </details>
+      <div class="extra">
+        <label>
+          <span class="label">Use case <code class="api">useCase</code></span>
+          <!-- The examples in https://developer.unico.io/developers/api-reference/post-processes -->
+          <select name="useCase">
+            <% for (const useCase of ['USE_CASE_LOGIN', 'USE_CASE_FIN_TRANSACTIONS']) { %>
+            <option <%= pick(v.useCase, useCase) %>><%= useCase %></option>
+            <% } %>
+          </select>
+        </label>
+        <label>
+          <span class="label">Reference process ID <code class="api">references</code></span>
+          <input name="referenceProcessId" value="<%= v.referenceProcessId ?? '' %>" />
+          <% if (locals.lastProcess) { %>
+          <small class="hint">Filled from your last test. Change it if you want another process.</small>
+          <% } %>
+        </label>
+      </div>
+      <label class="check">
+        <input type="checkbox" name="withContextualization" <%= v.withContextualization ? 'checked' : '' %> />
+        <span><span class="label">Contextualization <code class="api">contextualization</code></span> <small class="hint">Company, price and reason shown to the person in the journey.</small></span>
+      </label>
+      <div class="extra">
+        <label><span class="label">Company name <code class="api">company_name</code></span> <input name="companyName" maxlength="20" value="<%= v.companyName ?? '' %>" /></label>
+        <div class="row">
+          <label>
+            <span class="label">Currency <code class="api">currency</code></span>
+            <select name="currency">
+              <option value="">Not set</option>
+              <% for (const currency of ['BRL', 'MXN', 'USD']) { %>
+              <option <%= pick(v.currency, currency) %>><%= currency %></option>
+              <% } %>
+            </select>
+          </label>
+          <label><span class="label">Price <code class="api">price</code></span> <input name="price" type="number" min="0" step="0.01" value="<%= v.price ?? '' %>" /></label>
+        </div>
+        <div class="row">
+          <label>
+            <span class="label">Reason language <code class="api">locale</code></span>
+            <select name="locale">
+              <% for (const locale of ['ptBr', 'enUs', 'esMx']) { %>
+              <option <%= pick(v.locale, locale) %>><%= locale %></option>
+              <% } %>
+            </select>
+          </label>
+          <label><span class="label">Reason <code class="api">locale.{language}.reason</code></span> <input name="reason" maxlength="50" value="<%= v.reason ?? '' %>" /></label>
+        </div>
+      </div>
+      <p class="hint">Not sure? Leave them off. If the API asks for more, the error names the missing field.</p>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" onclick="this.closest('dialog').close()">Done</button>
+    </div>
+  </dialog>
 
-  <p class="hint">Create process and open with</p>
-  <% for (const [name, journey] of journeys) { %>
-  <button type="submit" name="journey" value="<%= name %>"><%= journey.label %></button>
-  <% } %>
+  <div class="dock">
+    <p class="dock-title" id="journey-label">Open the journey with</p>
+    <div class="segment" role="radiogroup" aria-labelledby="journey-label">
+      <%
+        // Widget first, as in the design. Either mode folder can be deleted and the form still works.
+        const modes = [...journeys].sort(([name]) => (name === 'journeys-sdk' ? -1 : 1));
+        const chosen = v.journey ?? modes[0][0];
+      %>
+      <% for (const [name, journey] of modes) { %>
+      <label><input type="radio" name="journey" value="<%= name %>" <%= chosen === name ? 'checked' : '' %> /> <%= journey.label %></label>
+      <% } %>
+    </div>
+    <div class="actions">
+      <button type="button" class="secondary" onclick="document.getElementById('customize').showModal()">Customize</button>
+      <button type="submit">Start test</button>
+    </div>
+  </div>
 </form>
+</div>
+
+<script type="module">
+  // Demo only: shows the body the server will send, built by the same flows/flows.js. Files show as placeholders.
+  import { buildProcessBody } from '/flows/flows.js';
+
+  const form = document.getElementById('process-form');
+  const render = () => {
+    const fields = Object.fromEntries(new FormData(form));
+    fields.documentFiles = [...form.elements.documentFiles.files].map((file) => `<${file.name} as base64>`);
+    const body = buildProcessBody(fields, form.dataset.callbackUri);
+    document.getElementById('preview').textContent = `POST /client/v1/process\n${JSON.stringify(body, null, 2)}`;
+    form.querySelector('[type=submit]').disabled = !form.checkValidity();
+  };
+  form.addEventListener('input', render);
+  render();
+
+  // On the error screen the form waits hidden, still filled in. Try again brings it back.
+  document.getElementById('try-again')?.addEventListener('click', () => {
+    document.getElementById('failed').hidden = true;
+    document.getElementById('run').hidden = false;
+    form.elements.flow.focus();
+  });
+</script>
 <%- include('partials/foot') %>

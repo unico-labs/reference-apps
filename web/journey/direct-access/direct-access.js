@@ -3,7 +3,7 @@
 // journey in the same tab. When the journey ends, Unico sends it back to the callbackUri given at creation.
 // Self-contained: the mode needs nothing outside this folder.
 
-export const label = 'Direct Access · Redirect';
+export const label = 'Redirect';
 
 export function openJourney(res, process) {
   // Use the URL as returned, without changing it. Plain Node on purpose: Express's res.redirect re-encodes it.

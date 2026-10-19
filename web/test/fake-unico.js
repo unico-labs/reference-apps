@@ -31,7 +31,23 @@ export async function startApp() {
           : 'https://cadastro.uat.unico.app/abc';
       return [200, { process: { id: 'abc-123', userRedirectUrl, token: 'process-token' } }];
     },
-    'GET /client/v1/process/abc-123': () => [200, { process: { id: 'abc-123', state: 'PROCESS_STATE_FINISHED' } }],
+    'GET /client/v1/process/abc-123': () => [
+      200,
+      {
+        process: {
+          id: 'abc-123',
+          flow: 'idlive_r2',
+          state: 'PROCESS_STATE_FINISHED',
+          result: 'PROCESS_RESULT_OK',
+          createdAt: '2026-10-19T12:00:00Z',
+          finishedAt: '2026-10-19T12:00:38Z',
+        },
+      },
+    ],
+    'GET /client/v1/process/def-456': () => [
+      200,
+      { process: { id: 'def-456', state: 'PROCESS_STATE_FINISHED', result: 'PROCESS_RESULT_INVALID_IDENTITY' } },
+    ],
     'GET /client/v1/process/abc-123/selfie': () => [200, { fileContents: '/9j/4AAQ', contentType: 'image/jpeg' }],
     'GET /client/v1/process/abc-123/evidenceset': () => [
       200,
@@ -56,12 +72,13 @@ export async function startApp() {
   await new Promise((resolve) => server.listen(0, resolve));
   const publicUrl = `http://localhost:${server.address().port}`;
 
+  const serviceAccount = 'my-account@abc123.iam.acesso.io';
   const unico = createUnico({
-    serviceAccount: 'my-account@abc123.iam.acesso.io',
+    serviceAccount,
     privateKey,
     hosts: { identity: fakeUrl, api: fakeUrl },
   });
-  handler = createApp({ unico, publicUrl, env: 'uat' });
+  handler = createApp({ unico, publicUrl, env: 'uat', serviceAccount });
 
   return {
     publicUrl,

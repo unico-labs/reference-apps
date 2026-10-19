@@ -14,7 +14,12 @@ const banner = `
 ▀█▄    ▄█▀ ██      ██ ██ ▀█▄    ▄▄▄ ▀█▄    ▄█▀
  ▀▀████▀▀  ██      ██ ██  ▀▀████▀▀   ▀▀████▀▀`;
 
-createApp({ unico, publicUrl: settings.publicUrl, env: settings.env }).listen(settings.port, () =>
+createApp({
+  unico,
+  publicUrl: settings.publicUrl,
+  env: settings.env,
+  serviceAccount: settings.serviceAccount,
+}).listen(settings.port, () =>
   console.log(`${banner}
 
   Web reference app

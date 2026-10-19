@@ -1,27 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { buildProcessBody, filterFlows } from '../flows/flows.js';
+import { buildProcessBody } from '../flows/flows.js';
 
-const flows = JSON.parse(readFileSync(new URL('../flows/flows.json', import.meta.url)));
-const flow = (id) => flows.find((f) => f.id === id);
 const callbackUri = 'http://localhost:3000/result';
+const person = { flow: 'idlive_r2', duiType: 'DUI_TYPE_BR_CPF', duiValue: '12345678909' };
 
-test('filters flows by group and region', () => {
-  const ids = (filter) => filterFlows(flows, filter).map((f) => f.id);
-
-  assert.deepEqual(ids({ group: 'step-up', region: 'all' }), ['idsmart_r2', 'idsmart_tp1']);
-  assert.deepEqual(ids({ group: 'sign-up', region: 'mexico' }), ['idtrust_r2-idgov', 'idtrustdocs_r2-idgov']);
-  assert.equal(ids({ group: 'sign-up', region: 'all' }).length, 16);
-  assert.deepEqual(ids({ group: 'step-up', region: 'brazil' }), []);
-});
-
-test('sends only the fields that were filled in', () => {
-  const body = buildProcessBody(
-    flow('idlive_r2'),
-    { duiType: 'DUI_TYPE_BR_CPF', duiValue: '12345678909', friendlyName: '', email: '', phone: '' },
-    callbackUri,
-  );
+test('sends the typed flow and only the fields that were filled in', () => {
+  const body = buildProcessBody({ ...person, flow: ' idlive_r2 ', friendlyName: '', expiresIn: '' }, callbackUri);
 
   assert.deepEqual(body, {
     flow: 'idlive_r2',
@@ -30,54 +15,29 @@ test('sends only the fields that were filled in', () => {
   });
 });
 
-test('adds the document files and purpose on Face Document Match flows', () => {
+test('adds the document files when the document is turned on', () => {
+  const body = buildProcessBody({ ...person, withDocument: 'on', documentFiles: ['AAA', 'BBB'] }, callbackUri);
+
+  assert.deepEqual(body.document, { files: [{ data: 'AAA' }, { data: 'BBB' }] });
+});
+
+test('adds the document purpose when the document is turned on', () => {
   const body = buildProcessBody(
-    flow('idunicodocs_r2'),
-    {
-      duiType: 'DUI_TYPE_BR_CPF',
-      duiValue: '1',
-      documentFiles: ['AAA', 'BBB'],
-      documentPurpose: 'DOCUMENT_PURPOSE_ONBOARDING',
-    },
+    { ...person, withDocument: 'on', documentFiles: ['AAA'], documentPurpose: 'DOCUMENT_PURPOSE_ONBOARDING' },
     callbackUri,
   );
 
-  assert.deepEqual(body.document, {
-    purpose: 'DOCUMENT_PURPOSE_ONBOARDING',
-    files: [{ data: 'AAA' }, { data: 'BBB' }],
-  });
+  assert.deepEqual(body.document, { purpose: 'DOCUMENT_PURPOSE_ONBOARDING', files: [{ data: 'AAA' }] });
 });
 
-test('leaves the document out when no file was chosen', () => {
-  const body = buildProcessBody(
-    flow('idunicodocs_r2'),
-    { duiType: 'DUI_TYPE_BR_CPF', duiValue: '1', documentFiles: [], documentPurpose: 'DOCUMENT_PURPOSE_ONBOARDING' },
-    callbackUri,
-  );
-
-  assert.equal(body.document, undefined);
+test('leaves the document out when it is turned off or has no file', () => {
+  assert.equal(buildProcessBody({ ...person, documentFiles: ['AAA'] }, callbackUri).document, undefined);
+  assert.equal(buildProcessBody({ ...person, withDocument: 'on', documentFiles: [] }, callbackUri).document, undefined);
 });
 
-test('ignores extra fields the flow does not take', () => {
+test('adds useCase and a process reference when they are turned on', () => {
   const body = buildProcessBody(
-    flow('idlive_r2'),
-    {
-      duiType: 'DUI_TYPE_BR_CPF',
-      duiValue: '1',
-      documentFiles: ['AAA'],
-      useCase: 'USE_CASE_LOGIN',
-      referenceProcessId: 'p',
-    },
-    callbackUri,
-  );
-
-  assert.deepEqual(Object.keys(body), ['flow', 'callbackUri', 'person']);
-});
-
-test('adds useCase and a process reference on Smart Revalidation flows', () => {
-  const body = buildProcessBody(
-    flow('idsmart_r2'),
-    { duiType: 'DUI_TYPE_BR_CPF', duiValue: '1', useCase: 'USE_CASE_LOGIN', referenceProcessId: 'abc-123' },
+    { ...person, withReferences: 'on', useCase: 'USE_CASE_LOGIN', referenceProcessId: 'abc-123' },
     callbackUri,
   );
 
@@ -85,14 +45,41 @@ test('adds useCase and a process reference on Smart Revalidation flows', () => {
   assert.deepEqual(body.references, [{ referenceType: 'REFERENCE_TYPE_PROCESS_ID', referenceContent: 'abc-123' }]);
 });
 
-test('maps the advanced fields to the API shape', () => {
+test('leaves useCase and references out when they are turned off', () => {
+  const body = buildProcessBody({ ...person, useCase: 'USE_CASE_LOGIN', referenceProcessId: 'abc-123' }, callbackUri);
+
+  assert.deepEqual(Object.keys(body), ['flow', 'callbackUri', 'person']);
+});
+
+test('maps the name, expiresIn and purpose to the API shape', () => {
   const body = buildProcessBody(
-    flow('idlive_r2'),
+    { ...person, friendlyName: 'Ana', expiresIn: '3600s', purpose: 'creditprocess' },
+    callbackUri,
+  );
+
+  assert.equal(body.person.friendlyName, 'Ana');
+  assert.equal(body.expiresIn, '3600s');
+  assert.equal(body.purpose, 'creditprocess');
+});
+
+test('leaves the person out when no document number was typed', () => {
+  const body = buildProcessBody({ flow: 'idlive_r2', duiType: 'DUI_TYPE_BR_CPF', duiValue: '' }, callbackUri);
+
+  assert.deepEqual(body, { flow: 'idlive_r2', callbackUri });
+});
+
+test('maps the email and phone to the person', () => {
+  const body = buildProcessBody({ ...person, email: 'ana@example.com', phone: '5511999999999' }, callbackUri);
+
+  assert.equal(body.person.email, 'ana@example.com');
+  assert.equal(body.person.phone, '5511999999999');
+});
+
+test('maps the contextualization to the API shape when it is turned on', () => {
+  const body = buildProcessBody(
     {
-      duiType: 'DUI_TYPE_BR_CPF',
-      duiValue: '1',
-      expiresIn: '3600s',
-      purpose: 'creditprocess',
+      ...person,
+      withContextualization: 'on',
       companyName: 'Acme',
       currency: 'BRL',
       price: '99.90',
@@ -102,12 +89,16 @@ test('maps the advanced fields to the API shape', () => {
     callbackUri,
   );
 
-  assert.equal(body.expiresIn, '3600s');
-  assert.equal(body.purpose, 'creditprocess');
   assert.deepEqual(body.contextualization, {
     company_name: 'Acme',
     currency: 'BRL',
     price: 99.9,
     locale: { ptBr: { reason: 'Confirm your purchase' } },
   });
+});
+
+test('leaves the contextualization out when it is turned off', () => {
+  const body = buildProcessBody({ ...person, companyName: 'Acme', currency: 'BRL' }, callbackUri);
+
+  assert.equal(body.contextualization, undefined);
 });

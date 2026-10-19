@@ -4,7 +4,7 @@ Rules for agents reading or porting the web reference app. The repo-wide rules i
 
 ## What it is
 
-One Express server with EJS templates. It renders every page, holds the service account, calls Unico and opens the journey in one of two modes, chosen with the button that submits the form: Direct Access, an HTTP redirect with no client-side JavaScript, or the Journeys SDK, a page that opens the journey as a widget. How to run it is in [`README.md`](README.md#run).
+One Express server with EJS templates. It renders every page, holds the service account, calls Unico and opens the journey in one of two modes, chosen on the form: Direct Access, an HTTP redirect with no client-side JavaScript, or the Journeys SDK, a page that opens the journey as a widget. How to run it is in [`README.md`](README.md#run).
 
 ## Where each piece is
 
@@ -12,21 +12,20 @@ One Express server with EJS templates. It renders every page, holds the service 
 |---|---|---|
 | `api/unico.js` | Unico client: JWT, access token, Create Process, Get Process, selfie, evidence set. Plain objects in and out, `UnicoError` with status and body | Reference for your own client: endpoints, JWT claims, token renewal and error handling |
 | `settings/` | Reads `.env`, checks the private key at startup, builds `publicUrl` | Reference for the startup key check; the rest is your config |
-| `flows/flows.js` | Filters flows and builds the Create Process body from form values | Reference for mapping your data to the Create Process body |
-| `flows/flows.json` | Copy of the root `flows.json`. CI fails if it drifts | Reference for which flows exist and the fields each one needs |
-| `views/` | EJS templates: menu, form, result and error pages | Reference for your own pages |
+| `flows/flows.js` | Builds the Create Process body from form values. The form imports the same file to preview the request | Reference for mapping your data to the Create Process body |
+| `views/` | EJS templates: the form (home page; when creation fails, an error screen with the form kept filled behind it), result and error pages | Reference for your own pages |
 | `journey/direct-access/` | Answers with `303 See Other` to `userRedirectUrl`. Imports nothing | Reference for opening the journey with Direct Access |
-| `journey/journeys-sdk/` | Renders `journey.ejs` with the process id and token. The page imports `unico-journey-sdk` by name, as in the docs; an import map points the name at the ES module the app serves from `node_modules`. Then it calls `init` and `open` | Reference for opening the journey with the Journeys SDK widget |
+| `journey/journeys-sdk/` | Renders `journey.ejs` with the process id and token. The page imports `unico-journey-sdk` by name, as in the docs; an import map points the name at the ES module the app serves from `node_modules`. Then it calls `init` and `open`. Behind the widget the page shows the journey in progress, and if the widget is closed before the end, offers a new test. In UAT, calling `open` again on the same process after a `CLOSE` didn't reopen the widget; the [SDK docs](https://developer.unico.io/developers/sdks-and-tools/web) don't cover reopening | Reference for opening the journey with the Journeys SDK widget |
 | `result/` | Keeps the process id in a cookie across the journey, then renders the process JSON and selfie, and serves the evidence set PDF | Reference for the calls after the callback; correlate with your own identifier, not a cookie (see below) |
 | `app.js` | Routes, form parsing, the origin check, the body size limit and loading each folder in `journey/` as a mode | Reference for the guards; the routing is your framework's |
 | `public/style.css`, `server.js` | Styles, entry point | Demo only |
 
 ## The flow, end to end
 
-1. `GET /flows/{id}` renders the form. The browser posts it back to the same URL.
-2. `POST /flows/{id}`: `app.js` builds the body with `callbackUri` set to `{PUBLIC_URL}/result` and calls `createProcess`, the same for every mode. `result/` sets the `unico_process_id` cookie, and the mode named in the form's `journey` field opens the journey:
+1. `GET /` renders the form. The flow is typed by name: the app doesn't know which flows the account has, so a wrong or disabled one fails on creation and the page shows the API's answer, raw, with the form still filled in behind it. `GET /?references={id}` prefills a step-up on that process.
+2. `POST /process`: `app.js` builds the body with `callbackUri` set to `{PUBLIC_URL}/result` and calls `createProcess`, the same for every mode. `result/` sets the `unico_process_id` cookie, and the mode named in the form's `journey` field opens the journey:
    - `journey/direct-access/` answers `303` to `process.userRedirectUrl`.
-   - `journey/journeys-sdk/` renders the journey page, which calls `ByUnicoSDK.init({ token, env })` and `ByUnicoSDK.open({ transactionId, token, onFinish, onWidgetVisibilityChange })` with `process.id` and `process.token`.
+   - `journey/journeys-sdk/` renders the journey page, which calls `ByUnicoSDK.init({ token, env })` and `ByUnicoSDK.open({ transactionId, token, onFinish })` with `process.id` and `process.token`.
 3. When the journey ends, Direct Access returns through Unico's redirect to `callbackUri`, and the Journeys SDK through `onFinish`, which navigates to `/result`. The app doesn't rely on anything Unico might add to that URL, which is why the id went into the cookie first.
 4. `GET /result` reads the cookie and makes one `GET` for the process and one for the selfie. `GET /result/evidenceset` makes one `GET` for the PDF when the user opens it. This repo's rule: one `GET` after the callback, no polling and no webhook.
 
