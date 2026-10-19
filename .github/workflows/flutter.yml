@@ -1,11 +1,7 @@
 name: flutter
 
 on:
-  push:
-    branches: [main]
-    paths: [flutter/**, .github/workflows/flutter.yml]
-  pull_request:
-    paths: [flutter/**, .github/workflows/flutter.yml]
+  workflow_call:
 
 defaults:
   run:
@@ -16,6 +12,8 @@ jobs:
     runs-on: unico-linux
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: subosito/flutter-action@v2
         with:
           channel: stable

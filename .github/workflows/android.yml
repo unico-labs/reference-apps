@@ -1,11 +1,7 @@
 name: android
 
 on:
-  push:
-    branches: [main]
-    paths: [android/**, .github/workflows/android.yml]
-  pull_request:
-    paths: [android/**, .github/workflows/android.yml]
+  workflow_call:
 
 defaults:
   run:
@@ -16,6 +12,8 @@ jobs:
     runs-on: unico-linux
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-java@v6
         with:
           distribution: temurin

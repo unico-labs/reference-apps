@@ -10,8 +10,9 @@ jobs:
     runs-on: unico-linux
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - run: jq empty flows.json
-      # ponytail: any tracked file named flows.json is a copy, no per-stack path list to maintain
       - run: |
           status=0
           for copy in $(git ls-files '*/flows.json'); do
