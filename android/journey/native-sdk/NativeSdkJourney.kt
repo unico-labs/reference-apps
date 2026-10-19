@@ -14,13 +14,23 @@ import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -30,8 +40,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.acesso.acessobio_android.AcessoBioListener
 import com.acesso.acessobio_android.iAcessoBioSelfie
 import com.acesso.acessobio_android.onboarding.AcessoBio
@@ -84,10 +99,13 @@ class UnicoConfig(private val bundleIdentifier: String, private val sdkKey: Stri
 }
 
 // `sdkKey` comes from Unico's Onboarding team, linked to `bundleIdentifier`. In a real app that's your own
-// application ID (activity.packageName); this demo lets Settings override it.
+// application ID (activity.packageName); this demo lets Settings override it. `flow` and `processId` are only shown
+// on the page behind the camera.
 @Composable
 fun NativeSdkJourney(
     webAppToken: String,
+    flow: String,
+    processId: String,
     sdkKey: String,
     bundleIdentifier: String,
     sdk: NativeSdk,
@@ -149,29 +167,88 @@ fun NativeSdkJourney(
 
     LaunchedEffect(Unit) { start() }
 
-    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        when (val current = state) {
-            JourneyState.Opening -> {
-                Text("Opening the journey", style = MaterialTheme.typography.headlineMedium)
-                CircularProgressIndicator()
+    // The page behind the SDK's camera: what the person sees while the journey runs, and after it stops.
+    Column(Modifier.fillMaxSize()) {
+        Column(Modifier.weight(1f).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            when (val current = state) {
+                JourneyState.Opening -> {
+                    Status("In progress", Color(0xFF1B45AB), Color(0xFFE4ECFC))
+                    Title("Journey in progress", "Finish the journey on the camera screen. This page moves to the result when you are done.")
+                }
+                // Once the user denies the camera for good, Android stops asking, so the way back is the app's settings.
+                JourneyState.CameraDenied -> {
+                    Status("Camera blocked", MaterialTheme.colorScheme.onSurfaceVariant, Color.White, outlined = true)
+                    Title("Camera access needed", "The journey takes a selfie. Allow the camera in Settings, then try again.")
+                }
+                is JourneyState.Ended -> {
+                    Status("Camera closed", MaterialTheme.colorScheme.onSurfaceVariant, Color.White, outlined = true)
+                    Title("Journey not finished", current.message)
+                }
             }
-            // Once the user denies the camera for good, Android stops asking, so the way back is the app's settings.
-            JourneyState.CameraDenied -> {
-                Text("Camera access needed", style = MaterialTheme.typography.headlineMedium)
-                Text("The journey takes a selfie. Allow the camera in Settings, then try again.")
-                Button(onClick = {
-                    activity.startActivity(
-                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", activity.packageName, null)),
-                    )
-                }) { Text("Open Settings") }
-                OutlinedButton(onClick = ::start) { Text("Try again") }
-                OutlinedButton(onClick = onBack) { Text("Back") }
+            Column(
+                Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(12.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+            ) {
+                InfoRow("Flow", flow)
+                InfoRow("Process ID", processId)
+                InfoRow("Opened with", "Native SDK")
             }
-            is JourneyState.Ended -> {
-                Text("Journey not finished", style = MaterialTheme.typography.headlineMedium)
-                Text(current.message)
-                OutlinedButton(onClick = onBack) { Text("Back") }
+        }
+
+        if (state != JourneyState.Opening) {
+            Surface(color = Color.White) {
+                Column {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Column(
+                        Modifier.navigationBarsPadding().padding(16.dp, 12.dp, 16.dp, 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        if (state == JourneyState.CameraDenied) {
+                            Action("Open Settings", primary = true) {
+                                activity.startActivity(
+                                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", activity.packageName, null)),
+                                )
+                            }
+                            Action("Try again", primary = false, onClick = ::start)
+                        } else {
+                            // The process stays where the journey stopped, so a new test creates a new one.
+                            Action("Start a new test", primary = true, onClick = onBack)
+                        }
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun Status(text: String, ink: Color, ground: Color, outlined: Boolean = false) = Text(
+    text,
+    Modifier.background(ground, CircleShape)
+        .border(1.dp, if (outlined) MaterialTheme.colorScheme.outlineVariant else ground, CircleShape)
+        .padding(horizontal = 12.dp, vertical = 4.dp),
+    color = ink, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+)
+
+@Composable
+private fun Title(title: String, text: String) = Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Text(title, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
+    Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+}
+
+@Composable
+private fun InfoRow(key: String, value: String) = Row(
+    Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically,
+) {
+    Text(key.uppercase(), Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    Text(value, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+}
+
+@Composable
+private fun Action(text: String, primary: Boolean, onClick: () -> Unit) {
+    val modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+    val shape = RoundedCornerShape(12.dp)
+    if (primary) Button(onClick, modifier, shape = shape) { Text(text, fontWeight = FontWeight.Bold) }
+    else OutlinedButton(onClick, modifier, shape = shape) { Text(text, fontWeight = FontWeight.Bold) }
 }

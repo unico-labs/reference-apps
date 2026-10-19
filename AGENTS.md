@@ -22,7 +22,7 @@ Inside each app:
 | Folder | Contents |
 |---|---|
 | `settings/` | Environment (UAT/PROD) and credentials. On web, the server's `.env`. On mobile, demo-mode credentials |
-| `flows/` | Sign-up × Step-up menu, region filter and the create-process form |
+| `flows/` | The create-process form: the flow typed by name, the person and the extra fields. On iOS, still the Sign-up × Step-up menu with its copy of `flows.json` |
 | `journey/direct-access/` | Web only: same-tab redirect to the journey link |
 | `journey/journeys-sdk/` | Web only: `unico-journey-sdk` with the widget |
 | `journey/native-sdk/` | Mobile only: Unico's native SDK, opened with the `webAppToken` |

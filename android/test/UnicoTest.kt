@@ -45,7 +45,8 @@ class UnicoTest {
                 if (tokenStatus == 200) {
                     Triple(200, "application/json", """{"access_token":"token-${tokenRequests.size}","token_type":"Bearer","expires_in":3600}""")
                 } else {
-                    Triple(tokenStatus, "application/json", """{"error":{"code":"1.2.21","message":"wrong private key"}}""")
+                    // The envelope Unico's token endpoint answers with; the docs list the codes but not the envelope.
+                    Triple(tokenStatus, "application/json", """{"error":"server_error","error_description":"1.2.21: wrong private key"}""")
                 }
             } else {
                 apiRequests += listOf(exchange.requestMethod, path, exchange.requestHeaders.getFirst("Authorization").orEmpty(), body)
@@ -155,6 +156,24 @@ class UnicoTest {
         assertEquals(401, error.status)
         assertTrue(error.body.contains("1.2.21"))
         assertTrue(apiRequests.isEmpty())
+    }
+
+    @Test
+    fun `verifying the connection requests a token and calls nothing else`() = runBlocking {
+        unico().accessToken()
+
+        assertEquals(1, tokenRequests.size)
+        assertEquals(0, apiRequests.size)
+    }
+
+    @Test
+    fun `verifying with a wrong key fails with the token error as returned`() {
+        tokenStatus = 401
+
+        val error = assertThrows(UnicoError::class.java) { runBlocking { unico().accessToken() } }
+
+        assertEquals(401, error.status)
+        assertTrue(error.body.contains("1.2.21"))
     }
 
     @Test

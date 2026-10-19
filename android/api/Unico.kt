@@ -97,13 +97,14 @@ class Unico(
     }
 
     // Concurrent callers share one request. Two assertions signed in the same second are identical,
-    // and Unico refuses a reused JWT (error 1.2.7).
-    private suspend fun token(): String = tokenLock.withLock {
+    // and Unico refuses a reused JWT (error 1.2.7). Public so an app can check its credentials on their own:
+    // a token proves the account, tenant and key are right, but says nothing about which flows the account has.
+    suspend fun accessToken(): String = tokenLock.withLock {
         accessToken?.takeIf { System.currentTimeMillis() < renewAt } ?: requestToken()
     }
 
     private suspend fun call(method: String, path: String, body: JsonObject? = null): JsonObject {
-        val (status, text) = send(method, "${hosts.api}$path", token(), "application/json", body?.toString())
+        val (status, text) = send(method, "${hosts.api}$path", accessToken(), "application/json", body?.toString())
         if (status !in 200..299) throw UnicoError(status, text)
         return parse(status, text)
     }
