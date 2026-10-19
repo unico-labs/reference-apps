@@ -1,26 +1,35 @@
-// The create-process form. Same fields as web/views/form.ejs; buildProcessBody turns them into the request body.
+// Run a flow: the create-process form, the Customize sheet and the error screen. Same fields as web/views/form.ejs;
+// buildProcessBody turns them into the request body.
 package io.unico.reference.flows
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -28,15 +37,39 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.unico.reference.app.BadGround
+import io.unico.reference.app.BadInk
+import io.unico.reference.app.Card
+import io.unico.reference.app.Code
+import io.unico.reference.app.Dock
+import io.unico.reference.app.ExtraBox
+import io.unico.reference.app.FieldLabel
+import io.unico.reference.app.Heading
+import io.unico.reference.app.Hint
+import io.unico.reference.app.Lab
+import io.unico.reference.app.Mark
+import io.unico.reference.app.Muted
+import io.unico.reference.app.PrimaryButton
+import io.unico.reference.app.SecondaryButton
 import java.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
 // https://developer.unico.io/developers/api-reference/post-processes (duiType values)
@@ -55,9 +88,10 @@ private val DUI_TYPES = listOf(
     "DUI_TYPE_US_SSN", "DUI_TYPE_UY_CI", "DUI_TYPE_ZZ_EMAIL", "DUI_TYPE_ZZ_PHONE_NUMBER",
 )
 private val DOCUMENT_PURPOSES = listOf(
-    "DOCUMENT_PURPOSE_ONBOARDING", "DOCUMENT_PURPOSE_CREDIT_PROCESS", "DOCUMENT_PURPOSE_CAR_PURCHASE",
+    "", "DOCUMENT_PURPOSE_ONBOARDING", "DOCUMENT_PURPOSE_CREDIT_PROCESS", "DOCUMENT_PURPOSE_CAR_PURCHASE",
     "DOCUMENT_PURPOSE_PAY_BY_PAYCHECK", "DOCUMENT_PURPOSE_FGTS",
 )
+// The examples in the Create Process docs.
 private val USE_CASES = listOf("USE_CASE_LOGIN", "USE_CASE_FIN_TRANSACTIONS")
 private val PURPOSES = listOf("", "biometryonboarding", "creditprocess", "carpurchase", "ageverification")
 private val CURRENCIES = listOf("", "BRL", "MXN", "USD")
@@ -66,115 +100,249 @@ private val LOCALES = listOf("ptBr", "enUs", "esMx")
 // The native SDK handles the return in-app, so the docs ask for "/" as the callbackUri.
 private const val CALLBACK_URI = "/"
 
+@OptIn(ExperimentalSerializationApi::class)
+private val pretty = Json { prettyPrint = true; prettyPrintIndent = "  " }
+
 // `onSubmit` creates the process and opens the journey. It returns an error to show, or null when it went on.
+// `reference` is the last process: it fills the reference field, turned on when `stepUp` asks for it.
 @Composable
-fun FormScreen(flow: Flow, onSubmit: suspend (body: JsonObject) -> String?) {
+fun FormScreen(reference: String?, stepUp: Boolean, onSubmit: suspend (body: JsonObject) -> String?) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val fields = remember {
         mutableStateMapOf(
-            "duiType" to DUI_TYPES.first(), "documentPurpose" to DOCUMENT_PURPOSES.first(),
-            "useCase" to USE_CASES.first(), "locale" to LOCALES.first(),
+            "duiType" to DUI_TYPES.first(), "useCase" to USE_CASES.first(), "locale" to LOCALES.first(),
+            "referenceProcessId" to reference.orEmpty(), "withReferences" to stepUp.toString(),
         )
     }
     val documents = remember { mutableStateListOf<Uri>() }
     var error by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
+    var customizing by remember { mutableStateOf(false) }
+
+    // On the error screen the form waits behind, still filled in. Try again brings it back.
+    error?.let { return Failed(fields["flow"].orEmpty(), it) { error = null } }
 
     val pickDocuments = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) {
         documents.clear()
         documents.addAll(it)
     }
+    // The preview shows the body the app will send; files stand in as placeholders.
+    val preview = buildProcessBody(fields, documents.map { "<file as base64>" }, CALLBACK_URI)
 
-    Column(
-        Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(flow.id, style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Monospace)
-        Text(flow.capabilities.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
-        Text("Use your own document. There are no test documents: the journey checks a real face against it.")
-        error?.let { Text(it, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.error) }
-
-        Text("Person", style = MaterialTheme.typography.titleMedium)
-        Picker("Document type", DUI_TYPES, fields.getValue("duiType")) { fields["duiType"] = it }
-        TextInput(fields, "duiValue", "Your document", "Numbers only, no formatting")
-        TextInput(fields, "friendlyName", "Name", "Optional")
-        TextInput(fields, "email", "Email", "Optional", KeyboardType.Email)
-        TextInput(fields, "phone", "Phone", "Optional, e.g. 5511999999999", KeyboardType.Phone)
-
-        if ("document" in flow.extraFields) {
-            Text("Document for Face Document Match", style = MaterialTheme.typography.titleMedium)
-            OutlinedButton(onClick = { pickDocuments.launch(arrayOf("image/*", "application/pdf")) }) {
-                Text(if (documents.isEmpty()) "Pick document images (optional)" else "${documents.size} file(s) picked")
+    Column(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            Column {
+                Text("Which flow do you want to test?", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                Hint("Type the flow name Unico gave you. If your account doesn't have it, the test fails and we show the API error.")
             }
-            Picker("Document purpose", DOCUMENT_PURPOSES, fields.getValue("documentPurpose")) { fields["documentPurpose"] = it }
+            Field(fields, "flow", "Flow", "flow", required = true, placeholder = "e.g. id", mono = true,
+                hint = "Flow names are listed on the Flows page of the Unico docs.")
+            Labelled("Document type", "person.duiType") { Picker(DUI_TYPES, fields.getValue("duiType")) { fields["duiType"] = it } }
+            Field(fields, "duiValue", "Document number", "person.duiValue", placeholder = "Numbers only, no formatting",
+                hint = "The person's own document. Leave it empty if the flow doesn't ask for one.")
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Lab("Request your backend sends")
+                Code("POST /client/v1/process\n${pretty.encodeToString(JsonElement.serializer(), preview)}")
+            }
         }
 
-        if ("useCase" in flow.extraFields) {
-            Text("Smart Revalidation", style = MaterialTheme.typography.titleMedium)
-            Picker("useCase", USE_CASES, fields.getValue("useCase")) { fields["useCase"] = it }
-            TextInput(fields, "referenceProcessId", "Onboarding process ID", "Process to revalidate against")
-        }
-
-        Text("Advanced", style = MaterialTheme.typography.titleMedium)
-        TextInput(fields, "expiresIn", "expiresIn", "3600s (default: 7 days)")
-        Picker("purpose", PURPOSES, fields["purpose"].orEmpty()) { fields["purpose"] = it }
-        TextInput(fields, "companyName", "contextualization.company_name")
-        Picker("contextualization.currency", CURRENCIES, fields["currency"].orEmpty()) { fields["currency"] = it }
-        TextInput(fields, "price", "contextualization.price", keyboard = KeyboardType.Decimal)
-        Picker("reason locale", LOCALES, fields.getValue("locale")) { fields["locale"] = it }
-        TextInput(fields, "reason", "contextualization reason")
-
-        Text("Create process and open with", style = MaterialTheme.typography.bodySmall)
-        Button(
-            enabled = !sending && !fields["duiValue"].isNullOrBlank(),
-            onClick = {
-                sending = true
-                scope.launch {
-                    val files = runCatching {
-                        withContext(Dispatchers.IO) {
-                            documents.map { uri ->
-                                val bytes = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
-                                Base64.getEncoder().encodeToString(bytes)
+        Dock {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SecondaryButton("Customize", { customizing = true })
+                PrimaryButton(
+                    if (sending) "Starting…" else "Start test",
+                    enabled = !sending && !fields["flow"].isNullOrBlank(),
+                    onClick = {
+                        sending = true
+                        scope.launch {
+                            val files = runCatching {
+                                withContext(Dispatchers.IO) {
+                                    documents.map { uri ->
+                                        val bytes = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
+                                        Base64.getEncoder().encodeToString(bytes)
+                                    }
+                                }
                             }
+                            error = files.fold(
+                                onSuccess = { onSubmit(buildProcessBody(fields, it, CALLBACK_URI)) },
+                                onFailure = { "Could not read a document file: $it" },
+                            )
+                            sending = false
                         }
-                    }
-                    error = files.fold(
-                        onSuccess = { onSubmit(buildProcessBody(flow, fields, it, CALLBACK_URI)) },
-                        onFailure = { "Could not read a document file: $it" },
-                    )
-                    sending = false
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Native SDK") }
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+
+    if (customizing) {
+        Customize(fields, documents.size, { pickDocuments.launch(arrayOf("image/*", "application/pdf")) }, filledFromLastTest = reference != null) {
+            customizing = false
+        }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TextInput(
+private fun Customize(
     fields: MutableMap<String, String>,
-    name: String,
-    label: String,
-    hint: String = "",
-    keyboard: KeyboardType = KeyboardType.Text,
-) {
-    OutlinedTextField(
-        fields[name].orEmpty(), { fields[name] = it },
-        label = { Text(label) }, placeholder = { Text(hint) }, singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboard), modifier = Modifier.fillMaxWidth(),
-    )
+    documentCount: Int,
+    onPickDocuments: () -> Unit,
+    filledFromLastTest: Boolean,
+    onDone: () -> Unit,
+) = ModalBottomSheet(onDismissRequest = onDone, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Customize request", Modifier.weight(1f), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+        TextButton(onClick = onDone) { Text("×", fontSize = 22.sp, color = Muted) }
+    }
+    Column(
+        Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Field(fields, "friendlyName", "Name", "person.friendlyName", placeholder = "Full name (optional)")
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Field(fields, "email", "Email", "person.email", keyboard = KeyboardType.Email, modifier = Modifier.weight(1f))
+            Field(fields, "phone", "Phone", "person.phone", placeholder = "5511999999999", keyboard = KeyboardType.Phone, modifier = Modifier.weight(1f))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Field(fields, "expiresIn", "Expires in", "expiresIn", placeholder = "3600s", modifier = Modifier.weight(1f))
+            Labelled("Purpose", "purpose", Modifier.weight(1f)) { Picker(PURPOSES, fields["purpose"].orEmpty()) { fields["purpose"] = it } }
+        }
+
+        Lab("Extra fields this flow needs", Modifier.padding(top = 4.dp))
+        Extra(fields, "withDocument", "Document image", "document", "Flows with Face Document Match.") {
+            Labelled("Document files", "document.files") {
+                SecondaryButton(if (documentCount == 0) "Pick document images" else "$documentCount file(s) picked", onPickDocuments, Modifier.fillMaxWidth())
+                Hint("Image of the person's document, used by Face Document Match.")
+            }
+            Labelled("Document purpose", "document.purpose") {
+                Picker(DOCUMENT_PURPOSES, fields["documentPurpose"].orEmpty()) { fields["documentPurpose"] = it }
+            }
+        }
+        Extra(fields, "withReferences", "Use case and reference", "useCase, references", "Step-up flows that revalidate an earlier process.") {
+            Labelled("Use case", "useCase") { Picker(USE_CASES, fields.getValue("useCase")) { fields["useCase"] = it } }
+            Field(fields, "referenceProcessId", "Reference process ID", "references",
+                hint = if (filledFromLastTest) "Filled from your last test. Change it if you want another process." else null)
+        }
+        Extra(fields, "withContextualization", "Contextualization", "contextualization", "Company, price and reason shown to the person in the journey.") {
+            Field(fields, "companyName", "Company name", "company_name")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Labelled("Currency", "currency", Modifier.weight(1f)) { Picker(CURRENCIES, fields["currency"].orEmpty()) { fields["currency"] = it } }
+                Field(fields, "price", "Price", "price", keyboard = KeyboardType.Decimal, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Labelled("Reason language", "locale", Modifier.weight(1f)) { Picker(LOCALES, fields.getValue("locale")) { fields["locale"] = it } }
+                Field(fields, "reason", "Reason", "locale.{language}.reason", modifier = Modifier.weight(1f))
+            }
+        }
+        Hint("Not sure? Leave them off. If the API asks for more, the error names the missing field.")
+    }
+    Dock { PrimaryButton("Done", onDone, Modifier.fillMaxWidth()) }
 }
 
 @Composable
-private fun Picker(label: String, options: List<String>, selected: String, onSelect: (String) -> Unit) {
+private fun Failed(flow: String, error: String, onTryAgain: () -> Unit) = Column(Modifier.fillMaxSize()) {
+    Column(
+        Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Heading(Mark.CROSS, BadInk, BadGround, "Couldn't start the test", "$flow · process was not created")
+        Card {
+            Lab("API response")
+            Code(error)
+        }
+        Card {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Lab("What you can do") }
+            Text(
+                "Check the information you entered and confirm the flow is active on your account.",
+                Modifier.fillMaxWidth(), textAlign = TextAlign.Center, fontSize = 14.sp,
+            )
+        }
+    }
+    Dock { PrimaryButton("Try again", onTryAgain, Modifier.fillMaxWidth()) }
+}
+
+// A switch for a group of extra fields, and the fields themselves while it's on.
+@Composable
+private fun Extra(
+    fields: MutableMap<String, String>,
+    name: String,
+    label: String,
+    api: String,
+    hint: String,
+    content: @Composable () -> Unit,
+) {
+    val on = fields[name] == "true"
+    Row(Modifier.fillMaxWidth().clickable { fields[name] = (!on).toString() }, verticalAlignment = Alignment.Top) {
+        // The whole row toggles, so the box doesn't need its own touch margin.
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+            Checkbox(on, { fields[name] = it.toString() }, Modifier.padding(top = 10.dp, end = 12.dp))
+        }
+        Column(Modifier.padding(top = 8.dp)) {
+            FieldLabel(label, api)
+            Hint(hint)
+        }
+    }
+    if (on) ExtraBox { content() }
+}
+
+@Composable
+private fun Labelled(label: String, api: String?, modifier: Modifier = Modifier, content: @Composable () -> Unit) =
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        FieldLabel(label, api)
+        content()
+    }
+
+@Composable
+private fun Field(
+    fields: MutableMap<String, String>,
+    name: String,
+    label: String,
+    api: String,
+    modifier: Modifier = Modifier,
+    required: Boolean = false,
+    placeholder: String = "",
+    hint: String? = null,
+    mono: Boolean = false,
+    keyboard: KeyboardType = KeyboardType.Text,
+) = Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    FieldLabel(label, api, required)
+    OutlinedTextField(
+        fields[name].orEmpty(), { fields[name] = it },
+        placeholder = { Text(placeholder) }, singleLine = true,
+        textStyle = if (mono) TextStyle(fontFamily = FontFamily.Monospace, fontSize = 16.sp) else TextStyle.Default,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboard), modifier = Modifier.fillMaxWidth(),
+    )
+    hint?.let { Hint(it) }
+}
+
+// A read-only field that opens a menu, standing in for a select.
+@Composable
+private fun Picker(options: List<String>, selected: String, onSelect: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        TextButton(onClick = { open = true }) { Text("$label: ${selected.ifEmpty { "Not set" }}") }
+        OutlinedTextField(
+            selected.ifEmpty { "Not set" }, {}, readOnly = true, singleLine = true,
+            textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp),
+            trailingIcon = { Chevron() }, modifier = Modifier.fillMaxWidth(),
+        )
+        Box(Modifier.matchParentSize().clickable { open = true })
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             options.forEach { option ->
                 DropdownMenuItem(text = { Text(option.ifEmpty { "Not set" }) }, onClick = { onSelect(option); open = false })
             }
         }
     }
+}
+
+@Composable
+private fun Chevron() = Canvas(Modifier.size(12.dp, 8.dp)) {
+    val w = 1.6.dp.toPx()
+    drawLine(Muted, Offset(1.dp.toPx(), 1.5.dp.toPx()), Offset(6.dp.toPx(), 6.5.dp.toPx()), w, StrokeCap.Round)
+    drawLine(Muted, Offset(6.dp.toPx(), 6.5.dp.toPx()), Offset(11.dp.toPx(), 1.5.dp.toPx()), w, StrokeCap.Round)
 }

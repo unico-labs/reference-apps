@@ -33,7 +33,6 @@ android {
             manifest.srcFile("app/AndroidManifest.xml")
             // AGP 9's built-in Kotlin compiles only kotlin.srcDirs; java.srcDirs alone leaves every .kt out of the APK.
             kotlin.srcDirs("app", "settings", "flows", "journey/native-sdk", "result", "api")
-            assets.srcDirs("flows/assets")
         }
         getByName("test") {
             kotlin.srcDirs("test")

@@ -158,6 +158,24 @@ class UnicoTest {
     }
 
     @Test
+    fun `verifying the connection requests a token and calls nothing else`() = runBlocking {
+        unico().accessToken()
+
+        assertEquals(1, tokenRequests.size)
+        assertEquals(0, apiRequests.size)
+    }
+
+    @Test
+    fun `verifying with a wrong key fails with the token error as returned`() {
+        tokenStatus = 401
+
+        val error = assertThrows(UnicoError::class.java) { runBlocking { unico().accessToken() } }
+
+        assertEquals(401, error.status)
+        assertTrue(error.body.contains("1.2.21"))
+    }
+
+    @Test
     fun `a malformed process id is refused before anything is sent`() {
         assertThrows(InvalidInputError::class.java) { runBlocking { unico().getSelfie("../token") } }
 
