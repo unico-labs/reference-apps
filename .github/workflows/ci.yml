@@ -16,6 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          persist-credentials: false
           fetch-depth: 2
       # On a pull request HEAD is the merge commit and HEAD^1 is the base. A push to main runs every stack.
       - id: diff
