@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "io.unico.reference"
-    compileSdk = flutter.compileSdkVersion
+    // permission_handler_android compiles against Android 37 and asks the same of the app; Flutter's default is 36.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
