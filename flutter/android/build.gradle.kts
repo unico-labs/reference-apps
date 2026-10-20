@@ -2,8 +2,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        // No Unico repository here: unico_check adds it. Declaring it here puts it ahead of Flutter's engine
-        // repository, and Unico's answers HTTP 200 with a JSON error for an artifact it doesn't have (ITD-2725).
     }
 }
 
