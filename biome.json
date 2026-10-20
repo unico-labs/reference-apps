@@ -8,8 +8,7 @@
   },
   "files": {
     "includes": [
-      "web/**",
-      "!**/flows.json"
+      "web/**"
     ]
   },
   "formatter": {

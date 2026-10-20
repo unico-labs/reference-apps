@@ -95,8 +95,9 @@ actor Unico {
     }
 
     // Concurrent callers share one request. Two assertions signed in the same second are identical,
-    // and Unico refuses a reused JWT (error 1.2.7).
-    private func token() async throws -> String {
+    // and Unico refuses a reused JWT (error 1.2.7). Public so an app can check its credentials on their own:
+    // a token proves the account, tenant and key are right, but says nothing about which flows the account has.
+    func accessToken() async throws -> String {
         if let accessToken, Date() < renewAt { return accessToken }
         if let pending { return try await pending.value }
         let request = Task { try await requestToken() }
@@ -107,7 +108,7 @@ actor Unico {
 
     private func call(_ method: String, _ path: String, body: sending [String: Any]? = nil) async throws -> sending [String: Any] {
         let (status, data) = try await send(
-            method, "\(hosts.api)\(path)", bearer: try await token(),
+            method, "\(hosts.api)\(path)", bearer: try await accessToken(),
             contentType: "application/json", body: try body.map { try JSONSerialization.data(withJSONObject: $0) }
         )
         guard (200...299).contains(status) else { throw UnicoError(status: status, body: String(decoding: data, as: UTF8.self)) }

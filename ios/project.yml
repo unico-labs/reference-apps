@@ -28,6 +28,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: io.unico.reference
         DEVELOPMENT_TEAM: ""
         INFOPLIST_FILE: app/Info.plist
+        # Assets.xcassets holds the launch screen logo only; the app has no icon of its own.
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
         SWIFT_VERSION: "6.0"
         # iPhone only: the SDK's capture screen runs in portrait.
         TARGETED_DEVICE_FAMILY: "1"

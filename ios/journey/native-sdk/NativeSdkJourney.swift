@@ -14,13 +14,18 @@ private enum JourneyState {
     case opening
     case cameraDenied
     case ended(String)
+
+    var isOpening: Bool { if case .opening = self { true } else { false } }
 }
 
 // `sdkKey` comes from Unico's Onboarding team, linked to `bundleIdentifier` and your Team ID. In a real app that's
-// your own Bundle.main.bundleIdentifier; this demo lets Settings override it.
+// your own Bundle.main.bundleIdentifier; this demo lets Connect override it.
 // `environment` must match the hosts the process was created on: .UAT or .PROD.
+// `flow` and `processId` are only shown on the page behind the camera.
 struct NativeSdkJourney: View {
     let webAppToken: String
+    let flow: String
+    let processId: String
     let sdkKey: String
     let bundleIdentifier: String
     let environment: EnvironmentEnum
@@ -34,37 +39,96 @@ struct NativeSdkJourney: View {
     @State private var host = UIViewController()
     @Environment(\.openURL) private var openURL
 
+    // The page behind the SDK's camera: what the person sees while the journey runs, and after it stops.
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            switch state {
-            case .opening:
-                Text("Opening the journey").font(.title2)
-                ProgressView()
-            // Once the user denies the camera, iOS stops asking, so the way back is the app's page in Settings.
-            case .cameraDenied:
-                Text("Camera access needed").font(.title2)
-                Text("The journey takes a selfie. Allow the camera in Settings, then try again.")
-                Button("Open Settings") { openURL(URL(string: UIApplication.openSettingsURLString)!) }
-                    .buttonStyle(.borderedProminent)
-                Button("Try again") { Task { await start() } }.buttonStyle(.bordered)
-                Button("Back", action: onBack).buttonStyle(.bordered)
-            case .ended(let message):
-                Text("Journey not finished").font(.title2)
-                Text(message)
-                Button("Back", action: onBack).buttonStyle(.bordered)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                switch state {
+                case .opening:
+                    status("In progress", ink: Color(red: 0.11, green: 0.27, blue: 0.67), ground: Color(red: 0.89, green: 0.93, blue: 0.99))
+                    title("Journey in progress", "Finish the journey on the camera screen. This page moves to the result when you are done.")
+                // Once the user denies the camera, iOS stops asking, so the way back is the app's page in Settings.
+                case .cameraDenied:
+                    status("Camera blocked", ink: .secondary, ground: .white, outlined: true)
+                    title("Camera access needed", "The journey takes a selfie. Allow the camera in Settings, then try again.")
+                case .ended(let message):
+                    status("Camera closed", ink: .secondary, ground: .white, outlined: true)
+                    title("Journey not finished", message)
+                }
+                VStack(spacing: 0) {
+                    row("Flow", flow)
+                    Divider()
+                    row("Process ID", processId)
+                    Divider()
+                    row("Opened with", "Native SDK")
+                }
+                .padding(.horizontal, 16)
+                .background(.white, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(white: 0.86)))
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            switch state {
+            case .opening: EmptyView()
+            case .cameraDenied:
+                actions {
+                    action("Open Settings", primary: true) { openURL(URL(string: UIApplication.openSettingsURLString)!) }
+                    action("Try again", primary: false) { Task { await start() } }
+                }
+            // The process stays where the journey stopped, so a new test creates a new one.
+            case .ended: actions { action("Start a new test", primary: true, onBack) }
+            }
+        }
+        .background(Color(red: 0.96, green: 0.97, blue: 0.98))
         .background(HostView(controller: host))
-        .navigationTitle("Journey")
+        .navigationBarBackButtonHidden(state.isOpening)
         // onAppear runs again when the SDK's screen goes away, so the journey opens once, behind a flag.
         .onAppear {
             guard !started else { return }
             started = true
             Task { await start() }
         }
+    }
+
+    private func status(_ text: String, ink: Color, ground: Color, outlined: Bool = false) -> some View {
+        Text(text).font(.caption.bold()).foregroundStyle(ink)
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(ground, in: Capsule())
+            .overlay(Capsule().stroke(outlined ? Color(white: 0.86) : .clear))
+    }
+
+    private func title(_ title: String, _ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.title2.weight(.heavy))
+            Text(text).font(.subheadline).foregroundStyle(.secondary)
+        }
+    }
+
+    private func row(_ key: String, _ value: String) -> some View {
+        HStack {
+            Text(key.uppercased()).font(.caption2.bold()).foregroundStyle(.secondary)
+            Spacer()
+            Text(value).font(.footnote.monospaced())
+        }
+        .frame(minHeight: 44)
+    }
+
+    private func actions<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(spacing: 10) { content() }
+            .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 8)
+            .background(.white)
+            .overlay(alignment: .top) { Divider() }
+    }
+
+    private func action(_ text: String, primary: Bool, _ run: @escaping () -> Void) -> some View {
+        Button(action: run) {
+            Text(text).font(.body.bold()).frame(maxWidth: .infinity, minHeight: 48)
+        }
+        .foregroundStyle(primary ? .white : .primary)
+        .background(primary ? Color(red: 0.14, green: 0.34, blue: 0.84) : .white, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(primary ? .clear : Color(white: 0.6)))
     }
 
     // The app asks for the camera before opening the SDK. Info.plist carries NSCameraUsageDescription:

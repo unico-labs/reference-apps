@@ -30,7 +30,8 @@ private final class FakeUnico: @unchecked Sendable {
             var form = URLComponents()
             form.percentEncodedQuery = body
             tokenRequests.append(Dictionary(uniqueKeysWithValues: form.queryItems!.map { ($0.name, $0.value ?? "") }))
-            if tokenStatus != 200 { return (tokenStatus, #"{"error":{"code":"1.2.21","message":"wrong private key"}}"#) }
+            // The envelope Unico's token endpoint answers with; the docs list the codes but not the envelope.
+            if tokenStatus != 200 { return (tokenStatus, #"{"error":"server_error","error_description":"1.2.21: wrong private key"}"#) }
             return (200, #"{"access_token":"token-\#(tokenRequests.count)","token_type":"Bearer","expires_in":3600}"#)
         }
         let method = request.httpMethod!
@@ -166,6 +167,25 @@ private func base64URLDecode(_ part: Substring) -> Data {
     #expect(error?.status == 401)
     #expect(error?.body.contains("1.2.21") == true)
     #expect(fake.recorded { $0.apiRequests.isEmpty })
+}
+
+@Test func verifyingTheConnectionRequestsATokenAndCallsNothingElse() async throws {
+    let fake = FakeUnico()
+
+    _ = try await unico(fake).accessToken()
+
+    #expect(fake.recorded { $0.tokenRequests.count } == 1)
+    #expect(fake.recorded { $0.apiRequests.isEmpty })
+}
+
+@Test func verifyingWithAWrongKeyFailsWithTheTokenErrorAsReturned() async {
+    let fake = FakeUnico()
+    fake.tokenStatus = 401
+
+    let error = await #expect(throws: UnicoError.self) { try await unico(fake).accessToken() }
+
+    #expect(error?.status == 401)
+    #expect(error?.body.contains("1.2.21") == true)
 }
 
 @Test func aMalformedProcessIdIsRefusedBeforeAnythingIsSent() async {

@@ -6,21 +6,20 @@ Rules for agents reading or porting the iOS reference app. The repo-wide rules i
 
 One SwiftUI app with a `NavigationStack`. It creates the process, opens the journey with Unico's native SDK and shows the result. How to run it is in [`README.md`](README.md#run).
 
-**Demo mode.** The app has no server, so it takes the service account on a Settings screen and calls Unico from the device. That is for demonstration only and the app says so on every screen. In production, your server holds the key, creates the process and sends the app only the `webAppToken`. The server side of this repo is [`../web/api/unico.js`](../web/api/unico.js).
+**Demo mode.** The app has no server, so it takes the service account on the Connect screen and calls Unico from the device. That is for demonstration only: the Connect screen says so where the key is entered, and the code is marked `DEMO ONLY`. In production, your server holds the key, creates the process and sends the app only the `webAppToken`. The server side of this repo is [`../web/api/unico.js`](../web/api/unico.js).
 
 ## Where each piece is
 
 | Path | What it does | How to use it |
 |---|---|---|
-| `api/Unico.swift` | Unico client: JWT signed with `SecKeyCreateSignature` (RS256), access token, Create Process, Get Process, selfie, evidence set. Foundation and Security only, an `actor`, `UnicoError` with status and body | **Demo only on a device.** Reference for the calls and error handling; in production this runs on your server (compare `web/api/unico.js`) |
-| `settings/` | Settings screen and storage: hosts (UAT prefilled), unique account name, tenant ID (the `iss` is built from them), SDK key, `.pem` imported from Files or pasted. The `.pem` goes to the Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`; `parsePrivateKey` turns it into a `SecKey` | **Demo only.** Don't carry it over: your app holds no service account key. Only the SDK key belongs in a real app |
-| `flows/Flows.swift` | Parses `flows.json`, filters flows, builds the Create Process body from form values | Reference for mapping your data to the Create Process body |
-| `flows/flows.json` | Copy of the root `flows.json`, bundled as a resource. CI fails if it drifts | Reference for which flows exist and the fields each one needs |
-| `flows/FlowsScreen.swift`, `flows/FormScreen.swift` | Sign-up × Step-up menu with region filter, and the create-process form | Reference for your own screens |
-| `journey/native-sdk/` | Asks for the camera, opens the SDK with the `webAppToken`, returns the `processId` from `onSuccess`, and sends the user to Settings when the camera is denied. Imports nothing from the other folders | Reference for opening the journey on iOS |
-| `result/` | One `GET` for the process and one for the selfie, shown raw; the evidence set fetched when opened and drawn with PDFKit | Reference for the calls after `onSuccess` |
-| `app/` | The `App`, navigation, demo banner and `Info.plist` | Glue; the navigation is yours |
-| `test/` | Swift Testing tests for `api/` against a local fake of Unico (a `URLProtocol`), and for `flows/Flows.swift` | Reference for testing your client |
+| `api/Unico.swift` | Unico client: JWT signed with `SecKeyCreateSignature` (RS256), access token (public, so Connect can verify credentials), Create Process, Get Process, selfie, evidence set. Foundation and Security only, an `actor`, `UnicoError` with status and body | **Demo only on a device.** Reference for the calls and error handling; in production this runs on your server (compare `web/api/unico.js`) |
+| `settings/` | Connect screen and storage: unique account name, tenant ID (the `iss` is built from them), `.pem` imported from Files or pasted, SDK key, Bundle Identifier, and the hosts under API endpoints (UAT prefilled). Verify connection asks for a token before saving. The `.pem` goes to the Keychain with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`; `parsePrivateKey` turns it into a `SecKey` | **Demo only.** Don't carry it over: your app holds no service account key. Only the SDK key belongs in a real app |
+| `flows/Flows.swift` | Builds the Create Process body from form values: the flow typed by name, the person, and the extra fields switched on in Customize | Reference for mapping your data to the Create Process body |
+| `flows/FormScreen.swift` | Run a flow: the flow typed by name, the document, a preview of the request, the Customize sheet, and the error screen with the response as returned | Reference for your own screens |
+| `journey/native-sdk/` | Asks for the camera, opens the SDK with the `webAppToken`, returns the `processId` from `onSuccess`, and sends the user to Settings when the camera is denied. Behind the camera, the page shows the journey in progress, then why it stopped. Imports nothing from the other folders | Reference for opening the journey on iOS |
+| `result/` | One `GET` for the process and one for the selfie. A heading names the result in words (`PROCESS_RESULT_OK` as Success, in `Verdict.swift`) and the JSON is shown raw; the evidence set fetched when opened and drawn with PDFKit | Reference for the calls after `onSuccess` |
+| `app/` | The `App` and navigation, `Ui.swift` (colors and shared pieces of the screens), `Info.plist` and `Assets.xcassets` (the launch screen logo) | Glue; the navigation and look are yours |
+| `test/` | Swift Testing tests for `api/` against a local fake of Unico (a `URLProtocol`), for `flows/Flows.swift` and for `result/Verdict.swift` | Reference for testing your client |
 | `project.yml`, `Package.swift` | `xcodegen generate` builds the app project from `project.yml`. `Package.swift` exists only so `swift test` runs the tests on a Mac | Build files |
 
 ## The flow, end to end

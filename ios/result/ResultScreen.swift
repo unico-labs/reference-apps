@@ -1,5 +1,5 @@
-// The result after onSuccess(processId): the process as the API returns it, without interpreting it, plus the selfie
-// and a button for the evidence set. One GET each, once. This repo's rule: no polling and no webhook.
+// The result after onSuccess(processId): a heading that names the result in words, the process as the API returns
+// it, the selfie and the evidence set. One GET each, once. This repo's rule: no polling and no webhook.
 import SwiftUI
 import UIKit
 
@@ -17,7 +17,8 @@ func describe(_ error: Error) -> String {
 }
 
 private struct Loaded {
-    let process: String
+    let process: [String: Any]?
+    let raw: String
     let selfie: UIImage?
     let selfieError: String?
 }
@@ -26,36 +27,18 @@ struct ResultScreen: View {
     let unico: Unico
     let processId: String
     let onEvidenceSet: () -> Void
+    let onStepUp: () -> Void
     let onDone: () -> Void
 
     @State private var loaded: Loaded?
     @State private var started = false
+    @State private var viewingSelfie = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                if let loaded {
-                    Text("GET /client/v1/process/{id}").font(.headline)
-                    Text(loaded.process).font(.caption.monospaced()).textSelection(.enabled)
-
-                    Text("GET /client/v1/process/{id}/selfie").font(.headline)
-                    if let selfie = loaded.selfie {
-                        Image(uiImage: selfie).resizable().scaledToFit().accessibilityLabel("Selfie captured in the journey")
-                    }
-                    if let error = loaded.selfieError { Text(error).font(.caption.monospaced()).textSelection(.enabled) }
-
-                    Text("GET /client/v1/process/{id}/evidenceset").font(.headline)
-                    Button("Open evidence set (PDF)", action: onEvidenceSet).buttonStyle(.borderedProminent)
-
-                    Button("Run another flow", action: onDone).buttonStyle(.bordered)
-                } else {
-                    ProgressView()
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
+        Group {
+            if let loaded { content(loaded) } else { ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity) }
         }
-        .navigationTitle("Result")
+        .background(Color.ground)
         // onAppear runs again when the user comes back from the evidence set, and .task would cancel a request
         // in flight when the screen goes away. So the load runs once, in its own Task, behind a flag.
         .onAppear {
@@ -64,11 +47,78 @@ struct ResultScreen: View {
             Task { loaded = await load(unico, processId) }
         }
     }
+
+    private func content(_ loaded: Loaded) -> some View {
+        Group {
+            VStack(alignment: .leading, spacing: 14) {
+                if let process = loaded.process {
+                    let verdict = verdict(process)
+                    let (symbol, ink, ground): (String, Color, Color) = switch verdict.tone {
+                    case .ok: ("checkmark", .okInk, .okGround)
+                    case .bad: ("xmark", .badInk, .badGround)
+                    case .neutral: ("minus", .muted, .line)
+                    }
+                    let subtitle = [process["flow"] as? String, durationSeconds(process).map { "\($0) s" }].compactMap { $0 }
+                    Heading(symbol: symbol, ink: ink, ground: ground, title: verdict.title,
+                            subtitle: subtitle.isEmpty ? nil : subtitle.joined(separator: " · "))
+                    Card {
+                        KeyValue(key: "Process ID", value: processId)
+                        KeyValue(key: "State", value: short(process["state"]) ?? "")
+                        KeyValue(key: "Result", value: short(process["result"]) ?? "")
+                    }
+                } else {
+                    Heading(symbol: "minus", ink: .muted, ground: .line, title: "Result")
+                }
+
+                Card {
+                    Lab("Response")
+                    CodeBlock(loaded.raw)
+                }
+
+                Card {
+                    attachment("Selfie", action: loaded.selfie == nil ? nil : "View", thumb: loaded.selfie) { viewingSelfie = true }
+                    if let error = loaded.selfieError { CodeBlock(error) }
+                    Divider()
+                    attachment("Evidence set (PDF)", action: "Open", thumb: nil, run: onEvidenceSet)
+                }
+            }
+            .screen {
+                Button("Try step-up on this process", action: onStepUp).buttonStyle(PrimaryButtonStyle())
+                Button("Run another flow", action: onDone).buttonStyle(SecondaryButtonStyle())
+            }
+        }
+        .sheet(isPresented: $viewingSelfie) {
+            if let selfie = loaded.selfie {
+                Image(uiImage: selfie).resizable().scaledToFit().padding()
+                    .accessibilityLabel("Selfie captured in the journey")
+                    .presentationDragIndicator(.visible)
+            }
+        }
+    }
+
+    private func attachment(_ name: String, action: String?, thumb: UIImage?, run: @escaping () -> Void) -> some View {
+        HStack(spacing: 12) {
+            Group {
+                if let thumb { Image(uiImage: thumb).resizable().scaledToFill() } else { Color.ground }
+            }
+            .frame(width: 40, height: 48)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            Text(name).font(.body.bold()).foregroundStyle(Color.ink)
+            Spacer()
+            if let action { Button(action, action: run).font(.subheadline.bold()).foregroundStyle(Color.accent) }
+        }
+        .frame(minHeight: 56)
+    }
 }
 
 private func load(_ unico: Unico, _ processId: String) async -> Loaded {
-    async let process: String = {
-        do { return pretty(try await unico.getProcess(processId)) } catch { return describe(error) }
+    async let process: ([String: Any]?, String) = {
+        do {
+            let response = try await unico.getProcess(processId)
+            return (response["process"] as? [String: Any], pretty(response))
+        } catch {
+            return (nil, describe(error))
+        }
     }()
     async let selfie: (UIImage?, String?) = {
         do {
@@ -81,5 +131,6 @@ private func load(_ unico: Unico, _ processId: String) async -> Loaded {
         }
     }()
     let (image, selfieError) = await selfie
-    return Loaded(process: await process, selfie: image, selfieError: selfieError)
+    let (json, raw) = await process
+    return Loaded(process: json, raw: raw, selfie: image, selfieError: selfieError)
 }
