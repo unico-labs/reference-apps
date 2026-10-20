@@ -1,4 +1,4 @@
-// Navigation and glue. Screens: Connect (settings), Run a flow, journey (native SDK), result, evidence set.
+// Navigation and glue. Screens: Welcome and setup (settings), Run a flow, journey (native SDK), result, evidence set.
 // Everything Unico-specific lives in the other folders; this file wires them together.
 package io.unico.reference.app
 
@@ -17,6 +17,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,15 +44,23 @@ import io.unico.reference.journey.nativesdk.NativeSdkJourney
 import io.unico.reference.result.EvidenceSetScreen
 import io.unico.reference.result.ResultScreen
 import io.unico.reference.result.describe
-import io.unico.reference.settings.SettingsScreen
+import io.unico.reference.settings.ConnectedScreen
+import io.unico.reference.settings.CredentialsScreen
+import io.unico.reference.settings.SdkSettingsScreen
+import io.unico.reference.settings.Settings
 import io.unico.reference.settings.SettingsStore
+import io.unico.reference.settings.WelcomeScreen
 import io.unico.reference.settings.environment
 import io.unico.reference.settings.parsePrivateKey
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-@Serializable object SettingsRoute
+@Serializable object WelcomeRoute
+// Setup: API credentials, the connected screen, then SDK settings.
+@Serializable object CredentialsRoute
+@Serializable object ConnectedRoute
+@Serializable object SdkSettingsRoute
 // `stepUp` turns on the reference to the last process, from Try step-up on the result screen.
 @Serializable data class FormRoute(val stepUp: Boolean = false)
 @Serializable data class JourneyRoute(val webAppToken: String, val flow: String, val processId: String)
@@ -72,35 +81,43 @@ class MainActivity : ComponentActivity() {
                 val unico = remember(settings) {
                     if (settings.isComplete) Unico(settings.serviceAccount, parsePrivateKey(settings.privateKeyPem), settings.hosts) else null
                 }
-                // Incomplete settings open Connect first. Picked once, so saving settings doesn't rebuild the graph.
-                val start: Any = remember { if (unico != null) FormRoute() else SettingsRoute }
-                // The SDK environment follows the hosts in Connect: PROD hosts open the PROD journey, anything else UAT.
+                // The credentials verified in this run of setup, null until Verify credentials succeeds. Saved only at the last step.
+                var draft by remember { mutableStateOf<Settings?>(null) }
+                // Incomplete settings open Welcome first. Picked once, so saving settings doesn't rebuild the graph.
+                val start: Any = remember { if (unico != null) FormRoute() else WelcomeRoute }
+                // The SDK environment follows the hosts in setup: PROD hosts open the PROD journey, anything else UAT.
                 val environment = if (settings.hosts == Hosts.PROD) Environment.PROD else Environment.UAT
-                // Built on the first composition of onCreate, as the docs ask, and again only if Connect changes the environment.
+                // Built on the first composition of onCreate, as the docs ask, and again only if setup changes the environment.
                 val sdk = remember(environment) { NativeSdk(this@MainActivity, environment) }
                 // The last journey finished here, offered as the reference for a step-up.
                 var lastProcessId by rememberSaveable { mutableStateOf<String?>(null) }
 
                 val destination = nav.currentBackStackEntryAsState().value?.destination
+                val welcome = destination?.hasRoute<WelcomeRoute>() ?: (start == WelcomeRoute)
+                val setup = destination?.hasRoute<CredentialsRoute>() == true || destination?.hasRoute<ConnectedRoute>() == true ||
+                    destination?.hasRoute<SdkSettingsRoute>() == true
                 val title = when {
-                    destination?.hasRoute<SettingsRoute>() == true -> "Connect"
+                    setup -> "Set up this app"
                     destination?.hasRoute<ResultRoute>() == true -> "Result"
                     destination?.hasRoute<EvidenceSetRoute>() == true -> "Evidence set"
                     else -> "Run a flow"
                 }
 
                 Scaffold(containerColor = Ground, topBar = {
-                    Surface(color = Color.White) {
+                    if (!welcome) Surface(color = Color.White) {
                         Column(Modifier.statusBarsPadding()) {
                             Row(
                                 Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(title, Modifier.weight(1f), fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
-                                if (unico != null && destination?.hasRoute<SettingsRoute>() != true) {
+                                if (unico != null && !setup) {
                                     Pill(
                                         "✓ ${settings.environment()} · ${settings.account}", OkInk, OkGround,
-                                        Modifier.clickable { nav.navigate(SettingsRoute) },
+                                        Modifier.clickable {
+                                            draft = null
+                                            nav.navigate(CredentialsRoute)
+                                        },
                                     )
                                 }
                             }
@@ -109,20 +126,37 @@ class MainActivity : ComponentActivity() {
                     }
                 }) { padding ->
                     NavHost(nav, startDestination = start, modifier = Modifier.padding(padding)) {
-                        composable<SettingsRoute> {
-                            SettingsScreen(
-                                settings,
+                        composable<WelcomeRoute> {
+                            WelcomeScreen { nav.navigate(CredentialsRoute) }
+                        }
+                        composable<CredentialsRoute> {
+                            CredentialsScreen(
+                                draft ?: settings,
                                 onVerify = { next ->
                                     // A token proves the account, tenant and key; it says nothing about the account's flows.
                                     runCatching { Unico(next.serviceAccount, parsePrivateKey(next.privateKeyPem), next.hosts).accessToken() }
                                         .exceptionOrNull()?.let(::describe)
                                 },
-                                onContinue = { saved ->
-                                    store.save(saved)
-                                    settings = saved
-                                    nav.navigate(FormRoute()) { popUpTo(nav.graph.id) { inclusive = true } }
+                                onVerified = {
+                                    draft = it
+                                    nav.navigate(ConnectedRoute)
                                 },
                             )
+                        }
+                        // After the OS kills the app, the back stack comes back but the verified draft is gone: start setup again from step 1.
+                        composable<ConnectedRoute> {
+                            val verified = draft
+                            if (verified == null) LaunchedEffect(Unit) { nav.popBackStack<CredentialsRoute>(inclusive = false) }
+                            else ConnectedScreen(verified) { nav.navigate(SdkSettingsRoute) }
+                        }
+                        composable<SdkSettingsRoute> {
+                            val verified = draft
+                            if (verified == null) LaunchedEffect(Unit) { nav.popBackStack<CredentialsRoute>(inclusive = false) }
+                            else SdkSettingsScreen(verified) { saved ->
+                                store.save(saved)
+                                settings = saved
+                                nav.navigate(FormRoute()) { popUpTo(nav.graph.id) { inclusive = true } }
+                            }
                         }
                         composable<FormRoute> { entry ->
                             FormScreen(lastProcessId, entry.toRoute<FormRoute>().stepUp) { body ->
@@ -143,7 +177,6 @@ class MainActivity : ComponentActivity() {
                                 flow = route.flow,
                                 processId = route.processId,
                                 sdkKey = settings.sdkKey,
-                                bundleIdentifier = settings.bundleIdentifier,
                                 sdk = sdk,
                                 onFinished = { processId ->
                                     // Only a finished journey is offered as the reference for a step-up.
