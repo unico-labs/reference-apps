@@ -31,13 +31,13 @@ The docs at https://developer.unico.io/llms.txt are the source of truth for the 
 
 **Link, don't restate.** An endpoint, field, error code or SDK call gets a link to its developer.unico.io page next to it. Restate only what the reader needs at that spot to act; the full contract stays on the docs site, where it can't go stale here.
 
-**Plain and concrete.** Short sentences, present tense, "you" for the integrator. Say what happens and what to do: "The server exits with a message if a value is missing", not "robust validation is performed". Name UI elements the way the app labels them (Customize, Connect, Verify connection).
+**Plain and concrete.** Short sentences, present tense, "you" for the integrator. Say what happens and what to do: "The server exits with a message if a value is missing", not "robust validation is performed". Name UI elements the way the app labels them (Customize, Get started, Verify credentials).
 
 **Exact names.** Field names, paths, values, commands and file names go in code font, spelled exactly as the API or the repo spells them (`webAppToken`, `/client/v1/process/{id}`, `PROCESS_RESULT_OK`). Endpoint mentions show the full path from the docs, so grepping finds both.
 
 **Same shape across stacks.** A README has, in order: what the app is, Run, Test, Using `<reference unit>` as a reference, Code (the pointer to `AGENTS.md`). An `AGENTS.md` has: What it is, Where each piece is (table of Path / What it does / How to use it), The flow end to end, Building your own integration, Docs behind each piece. A new app's docs follow its siblings section by section; a fact that differs between stacks is stated in each.
 
-**Reference, not copy.** Docs point to what to learn from each piece and the docs page behind it, never to copying a file. Demo-only code (credentials on the device, the Connect screen) is called demo where it's described, with what production does instead.
+**Reference, not copy.** Docs point to what to learn from each piece and the docs page behind it, never to copying a file. Demo-only code (credentials on the device, the API credentials step of setup) is called demo where it's described, with what production does instead.
 
 **Gotchas earn their place.** A warning is worth writing when the reader would otherwise lose time on it: the error code they'll see, what it means, the fix (`73303`: the SDK key isn't linked to this `applicationId`). Put it where the reader hits it.
 
