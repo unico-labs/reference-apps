@@ -13,6 +13,7 @@ let package = Package(
             exclude: [
                 "test", "app", "journey", "AGENTS.md", "CLAUDE.md", "README.md", "project.yml",
                 "flows/FormScreen.swift", "result/ResultScreen.swift", "result/EvidenceSetScreen.swift", "settings/SettingsScreen.swift",
+                "settings/WelcomeScreen.swift",
             ],
             sources: ["api/Unico.swift", "flows/Flows.swift", "result/Verdict.swift", "settings/Settings.swift"]
         ),

@@ -1,4 +1,5 @@
-// Navigation and glue. Screens: Connect (settings), Run a flow, journey (native SDK), result, evidence set.
+// Navigation and glue. Screens: Welcome and the two setup steps (settings), Run a flow, journey (native SDK), result,
+// evidence set.
 // Everything Unico-specific lives in the other folders; this file wires them together.
 import AcessoBio
 import SwiftUI
@@ -11,13 +12,16 @@ struct UnicoReferenceApp: App {
 }
 
 private enum Route: Hashable {
-    case settings
+    // The setup steps. What step 1 verified rides along until step 2 saves it.
+    case credentials
+    case connected(Settings)
+    case sdkSettings(Settings)
     case journey(webAppToken: String, flow: String, processId: String)
     case result(processId: String)
     case evidenceSet(processId: String)
 }
 
-// The SDK environment follows the hosts in Connect: PROD hosts open the PROD journey, anything else UAT.
+// The SDK environment follows the hosts in setup: PROD hosts open the PROD journey, anything else UAT.
 @MainActor
 private func sdkEnvironment(_ settings: Settings) -> EnvironmentEnum { settings.hosts == .prod ? .PROD : .UAT }
 
@@ -31,7 +35,7 @@ private struct Root: View {
     private let store = SettingsStore()
     @State private var settings: Settings
     @State private var unico: Unico?
-    // Built at launch, as the docs ask, and again only if Connect changes the environment.
+    // Built at launch, as the docs ask, and again only if setup changes the environment.
     @State private var sdk: NativeSdk
     @State private var path: [Route] = []
     // The last journey finished here, offered as the reference for a step-up.
@@ -50,9 +54,9 @@ private struct Root: View {
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                // Incomplete settings open Connect first.
+                // Incomplete settings open Welcome first.
                 if unico == nil {
-                    connect.bar("Connect")
+                    WelcomeScreen { path.append(.credentials) }.toolbar(.hidden, for: .navigationBar)
                 } else {
                     FormScreen(reference: lastProcessId, stepUp: stepUp, onSubmit: submit)
                         .id(formId)
@@ -64,8 +68,8 @@ private struct Root: View {
         .tint(.accent)
     }
 
-    private var connect: some View {
-        SettingsScreen(
+    private var credentials: some View {
+        CredentialsScreen(
             initial: settings,
             onVerify: { next in
                 // A token proves the account, tenant and key; it says nothing about the account's flows.
@@ -77,12 +81,12 @@ private struct Root: View {
                     return describe(error)
                 }
             },
-            onContinue: save
+            onVerified: { path.append(.connected($0)) }
         )
     }
 
     private var pill: some View {
-        Button { path.append(.settings) } label: {
+        Button { path.append(.credentials) } label: {
             Pill(text: "✓ \(settings.environment) · \(settings.account)", ink: .okInk, ground: .okGround)
         }
     }
@@ -90,15 +94,18 @@ private struct Root: View {
     @ViewBuilder
     private func screen(_ route: Route) -> some View {
         switch route {
-        case .settings:
-            connect.bar("Connect")
+        case .credentials:
+            credentials.bar("Set up this app")
+        case .connected(let verified):
+            ConnectedScreen(settings: verified) { path.append(.sdkSettings(verified)) }.bar("Set up this app")
+        case .sdkSettings(let verified):
+            SdkSettingsScreen(settings: verified, onSave: save).bar("Set up this app")
         case .journey(let webAppToken, let flow, let processId):
             NativeSdkJourney(
                 webAppToken: webAppToken,
                 flow: flow,
                 processId: processId,
                 sdkKey: settings.sdkKey,
-                bundleIdentifier: settings.bundleIdentifier,
                 sdk: sdk,
                 onFinished: { processId in
                     // Only a finished journey is offered as the reference for a step-up.

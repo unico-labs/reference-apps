@@ -58,15 +58,13 @@ fileprivate final class SessionListener: NSObject, AcessoBioManagerDelegate, @un
     func onSystemChangedTypeCameraTimeoutFaceInference() {}
 }
 
-// `sdkKey` comes from Unico's Onboarding team, linked to `bundleIdentifier`. In a real app that's
-// your own Bundle.main.bundleIdentifier; this demo lets Connect override it.
+// `sdkKey` comes from Unico's Onboarding team, linked to this build's Bundle Identifier.
 // `flow` and `processId` are only shown on the page behind the camera.
 struct NativeSdkJourney: View {
     let webAppToken: String
     let flow: String
     let processId: String
     let sdkKey: String
-    let bundleIdentifier: String
     let sdk: NativeSdk
     let onFinished: (_ processId: String) -> Void
     let onBack: () -> Void
@@ -180,7 +178,7 @@ struct NativeSdkJourney: View {
     }
 
     private func open() {
-        let session = JourneySession(host: sdk.host, sdkKey: sdkKey, bundleIdentifier: bundleIdentifier, webAppToken: webAppToken) { outcome in
+        let session = JourneySession(host: sdk.host, sdkKey: sdkKey, webAppToken: webAppToken) { outcome in
             switch outcome {
             case .finished(let processId): onFinished(processId)
             case .cameraDenied: state = .cameraDenied
@@ -205,15 +203,13 @@ private final class JourneySession: NSObject {
 
     private let host: UIViewController
     private let sdkKey: String
-    private let bundleIdentifier: String
     private let webAppToken: String
     private let onEnd: (Outcome) -> Void
     private var ended = false
 
-    init(host: UIViewController, sdkKey: String, bundleIdentifier: String, webAppToken: String, onEnd: @escaping (Outcome) -> Void) {
+    init(host: UIViewController, sdkKey: String, webAppToken: String, onEnd: @escaping (Outcome) -> Void) {
         self.host = host
         self.sdkKey = sdkKey
-        self.bundleIdentifier = bundleIdentifier
         self.webAppToken = webAppToken
         self.onEnd = onEnd
     }
@@ -243,7 +239,8 @@ private final class JourneySession: NSObject {
 }
 
 extension JourneySession: AcessoBioConfigDataSource {
-    nonisolated func getBundleIdentifier() -> String { bundleIdentifier }
+    // The ID Unico linked to the SDK key: https://developer.unico.io/developers/sdks-and-tools/ios/installation/specific-setup
+    nonisolated func getBundleIdentifier() -> String { Bundle.main.bundleIdentifier ?? "" }
     nonisolated func getHostKey() -> String { sdkKey }
 }
 

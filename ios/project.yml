@@ -39,7 +39,7 @@ targets:
         product: unicocheck-ios-spm
     settings:
       base:
-        # The native SDK only opens for the Bundle Identifier that Unico linked to your SDK key:
+        # Unico links the SDK key to this Bundle Identifier, so set it to the one you gave Unico:
         # https://developer.unico.io/developers/sdks-and-tools/ios/installation/specific-setup
         PRODUCT_BUNDLE_IDENTIFIER: io.unico.reference
         # Your Apple Developer Team ID, which Xcode needs to sign the app for an iPhone.

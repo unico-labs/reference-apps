@@ -7,17 +7,14 @@
 import Foundation
 import Security
 
-struct Settings: Equatable, CustomStringConvertible {
+struct Settings: Hashable, CustomStringConvertible {
     var identityHost = Hosts.uat.identity
     var apiHost = Hosts.uat.api
     var account = ""
     var tenant = ""
-    // Issued by Unico's Onboarding team for your Bundle Identifier:
+    // Issued by Unico's Onboarding team for this build's Bundle Identifier:
     // https://developer.unico.io/developers/sdks-and-tools/ios/installation/specific-setup
     var sdkKey = ""
-    // The Bundle Identifier the SDK key was issued for. Defaults to this build's own (see load());
-    // editable only so a demo can try a key issued for another ID.
-    var bundleIdentifier = ""
     var privateKeyPem = ""
 
     var hosts: Hosts { Hosts(identity: trimSlash(identityHost), api: trimSlash(apiHost)) }
@@ -25,9 +22,12 @@ struct Settings: Equatable, CustomStringConvertible {
     // The `iss` claim: https://developer.unico.io/developers/start/authentication
     var serviceAccount: String { "\(account)@\(tenant).iam.acesso.io" }
 
-    var isComplete: Bool {
-        [identityHost, apiHost, account, tenant, sdkKey, bundleIdentifier, privateKeyPem].allSatisfy { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+    // What step 1 of setup asks for: enough to request a token.
+    var hasCredentials: Bool {
+        [identityHost, apiHost, account, tenant, privateKeyPem].allSatisfy { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
     }
+
+    var isComplete: Bool { hasCredentials && !sdkKey.trimmingCharacters(in: .whitespaces).isEmpty }
 
     // Keeps the key out of logs and crash reports.
     var description: String { "Settings(identityHost: \(identityHost), apiHost: \(apiHost), account: \(account), tenant: \(tenant))" }
@@ -41,8 +41,8 @@ struct SettingsError: LocalizedError {
     let errorDescription: String?
 }
 
-// A key copied from an email often loses its PEM header or arrives in another format. Check it when it's saved,
-// so the error names what was found instead of failing on the first token request.
+// A key copied from an email often loses its PEM header or arrives in another format. Check it on Verify
+// credentials, so the error names what was found instead of failing on the first token request.
 func parsePrivateKey(_ pem: String) throws -> SecKey {
     let header = pem.firstMatch(of: /-----BEGIN ([A-Z ]+)-----/)?.1
     guard header == "PRIVATE KEY" else {
@@ -100,13 +100,14 @@ struct SettingsStore {
         settings.account = defaults.string(forKey: "account") ?? ""
         settings.tenant = defaults.string(forKey: "tenant") ?? ""
         settings.sdkKey = defaults.string(forKey: "sdkKey") ?? ""
-        settings.bundleIdentifier = defaults.string(forKey: "bundleIdentifier") ?? Bundle.main.bundleIdentifier ?? ""
         settings.privateKeyPem = readKey() ?? ""
         return settings
     }
 
     // The key goes first, so a Keychain failure leaves the saved account untouched.
     func save(_ settings: Settings) throws {
+        // Incomplete settings would open Run a flow with no Unico client behind it.
+        guard settings.isComplete else { throw SettingsError(errorDescription: "Fill in the API credentials and the SDK key.") }
         SecItemDelete(keychainItem as CFDictionary)
         var item = keychainItem
         item[kSecValueData] = Data(settings.privateKeyPem.utf8)
@@ -118,7 +119,6 @@ struct SettingsStore {
         defaults.set(settings.account, forKey: "account")
         defaults.set(settings.tenant, forKey: "tenant")
         defaults.set(settings.sdkKey, forKey: "sdkKey")
-        defaults.set(settings.bundleIdentifier, forKey: "bundleIdentifier")
     }
 
     private func readKey() -> String? {
