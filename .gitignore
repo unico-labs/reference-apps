@@ -1,0 +1,37 @@
+# Credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+
+# Local tool files
+.idea/
+.vscode/
+.claude/*
+!.claude/skills/
+.cursor/
+.DS_Store
+
+# Build
+node_modules/
+dist/
+build/
+.gradle/
+.kotlin/
+local.properties
+DerivedData/
+xcuserdata/
+.build/
+.swiftpm/
+ios/UnicoReference.xcodeproj/
+Pods/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Root has no package.json
+/package-lock.json

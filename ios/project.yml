@@ -1,0 +1,52 @@
+# XcodeGen spec for the app: `xcodegen generate` writes UnicoReference.xcodeproj (not committed).
+# One target, rooted here, so the source folders match the layout shared by every app in this repo
+# (settings/, flows/, journey/native-sdk/, result/, api/). app/ holds the App, navigation and Info.plist.
+name: UnicoReference
+options:
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  # https://developer.unico.io/developers/sdks-and-tools/ios/installation (Swift Package Manager)
+  UnicoCheck:
+    url: https://github.com/acesso-io/unico-check-ios.git
+    from: 3.5.0
+
+targets:
+  UnicoReference:
+    type: application
+    platform: iOS
+    sources: [app, settings, flows, journey/native-sdk, result, api]
+    # XcodeGen writes app/Info.plist from these keys on every `xcodegen generate`, so edit them here.
+    info:
+      path: app/Info.plist
+      properties:
+        CFBundleDisplayName: Unico Reference App
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
+        # https://developer.unico.io/developers/sdks-and-tools/ios/installation (step 2)
+        NSCameraUsageDescription: The journey takes a selfie to verify your identity.
+        # The launch screen: the Unico wordmark on white, from Assets.xcassets.
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+          UIImageName: UnicoLogo
+        # The SDK cancels the session in landscape (73708) or upside down (73709):
+        # https://developer.unico.io/developers/sdks-and-tools/ios/requirements
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+    dependencies:
+      - package: UnicoCheck
+        product: unicocheck-ios-spm
+    settings:
+      base:
+        # The native SDK only opens for the Bundle Identifier that Unico linked to your SDK key:
+        # https://developer.unico.io/developers/sdks-and-tools/ios/installation/specific-setup
+        PRODUCT_BUNDLE_IDENTIFIER: io.unico.reference
+        # Your Apple Developer Team ID, which Xcode needs to sign the app for an iPhone.
+        DEVELOPMENT_TEAM: ""
+        # Assets.xcassets holds the launch screen logo only; the app has no icon of its own.
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        SWIFT_VERSION: "6.0"
+        # iPhone only: the SDK's capture screen runs in portrait.
+        TARGETED_DEVICE_FAMILY: "1"
+    scheme: {}

@@ -1,0 +1,60 @@
+<%- include('../../views/partials/head', { title: 'Journey' }) %>
+<div class="journey">
+  <section id="open" class="stack">
+    <span class="status"><span class="dot" aria-hidden="true"></span>In progress</span>
+    <h1>Journey in progress</h1>
+    <p id="journey" class="hint" data-process-id="<%= processId %>" data-token="<%= token %>" data-env="<%= env %>">
+      Finish the journey in the window. This page moves to the result when you are done.
+    </p>
+  </section>
+  <section id="closed" class="stack centered" hidden>
+    <svg class="icon" width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="28" /><circle class="ring" cx="28" cy="28" r="14" /><path d="M28 21.5v7.5M28 34v.5" /></svg>
+    <span class="status closed">Widget closed</span>
+    <h1>Journey not finished</h1>
+    <p class="hint">You closed the journey before finishing. Start a new test to try again.</p>
+  </section>
+
+  <dl class="card rows">
+    <div><dt>Flow</dt><dd><code><%= flow %></code></dd></div>
+    <div><dt>Process ID</dt><dd><code><%= processId %></code></dd></div>
+    <div><dt>Opened with</dt><dd><%= label %></dd></div>
+  </dl>
+
+  <div class="actions" id="open-actions"><a class="button secondary" href="/">Cancel test</a></div>
+  <div class="dock" id="closed-actions" hidden>
+    <div class="actions"><a class="button" href="/">Start a new test</a></div>
+  </div>
+</div>
+<!-- Maps the package name to the file the server serves, so the import reads as it would with a bundler. -->
+<script type="importmap">
+  { "imports": { "unico-journey-sdk": "/journeys-sdk/unico-journey-sdk.js" } }
+</script>
+<script type="module">
+  import { ByUnicoSDK } from 'unico-journey-sdk';
+
+  const status = document.getElementById('journey');
+  const { processId, token, env } = status.dataset;
+
+  // If the widget doesn't open, check the browser console. "Domain not allowed" means the page's domain isn't
+  // registered for this environment. Register domains with the Unico support team, HTTPS only: https://developer.unico.io/developers/sdks-and-tools/web
+  // The SDK only logs it: nothing throws, so the catch below never sees it.
+  try {
+    // env 'uat' points the SDK at the test environment. Without it, the SDK uses production.
+    await ByUnicoSDK.init(env === 'uat' ? { token, env } : { token });
+    ByUnicoSDK.open({
+      transactionId: processId,
+      token,
+      onFinish: ({ type }) => {
+        // FINISH: the journey ended (transaction = { id, redirectUrl }). The result page makes the one GET.
+        if (type === 'FINISH') return location.assign('/result');
+        // CLOSE: the user closed the widget before finishing. After CLOSE, open() on the same process doesn't
+        // reopen the widget, so the page offers a new test on a new process.
+        for (const id of ['open', 'open-actions']) document.getElementById(id).hidden = true;
+        for (const id of ['closed', 'closed-actions']) document.getElementById(id).hidden = false;
+      },
+    });
+  } catch (error) {
+    status.textContent = `The SDK did not start: ${error}`;
+  }
+</script>
+<%- include('../../views/partials/foot') %>

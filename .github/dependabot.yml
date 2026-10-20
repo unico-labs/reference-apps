@@ -1,0 +1,42 @@
+# One grouped PR per stack per week, so each PR runs only that stack's CI.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    groups:
+      web:
+        patterns: ["*"]
+
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: weekly
+    groups:
+      android:
+        patterns: ["*"]
+
+  - package-ecosystem: swift
+    directory: /ios
+    schedule:
+      interval: weekly
+    groups:
+      ios:
+        patterns: ["*"]
+
+  - package-ecosystem: pub
+    directory: /flutter
+    schedule:
+      interval: weekly
+    groups:
+      flutter:
+        patterns: ["*"]

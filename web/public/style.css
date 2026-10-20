@@ -1,0 +1,705 @@
+:root {
+  --ground: #eef1f5;
+  --surface: #ffffff;
+  --text: #16202c;
+  --muted: #5b6878;
+  --accent: #2457d6;
+  --border: #d5dbe3;
+  --code-ground: #0f1722;
+  --code-text: #d7e0ea;
+  --ok-text: #17734a;
+  --ok-ground: #dff3e8;
+  --bad-text: #9b1c12;
+  --bad-ground: #fbe3e0;
+  --segment-ground: #e3e8ef;
+  --tag-text: #1b45ab;
+  --tag-ground: #e4ecfc;
+  --extra-ground: #f4f7fe;
+  --extra-border: #c5d5f7;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #0b1118;
+    --surface: #141c26;
+    --text: #e6ecf2;
+    --muted: #9aa8b8;
+    --accent: #7ea2ff;
+    --border: #2a3644;
+    --ok-text: #8fe0b4;
+    --ok-ground: #0f3322;
+    --bad-text: #ffb4a8;
+    --bad-ground: #3d1410;
+    --segment-ground: #0b1118;
+    --tag-text: #a9c1ff;
+    --tag-ground: #1c2a4a;
+    --extra-ground: #111b2e;
+    --extra-border: #2a3d66;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font:
+    16px / 1.5 system-ui,
+    sans-serif;
+}
+
+a {
+  color: var(--accent);
+}
+
+code,
+pre,
+select,
+input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.bar-title {
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+h2 {
+  font-size: 0.95rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-top: 24px;
+}
+
+label {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+}
+
+details {
+  margin-bottom: 16px;
+}
+
+summary {
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+button {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* The native arrow sits on the right edge and ignores padding, so the select draws its own chevron. */
+select {
+  appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238c97a6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: var(--ok-ground);
+  color: var(--ok-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.pill svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.api {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.req {
+  color: var(--bad-text);
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.lab {
+  margin: 16px 0 8px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card .lab,
+.card pre,
+.card .hint {
+  margin: 0;
+}
+
+.verdict {
+  display: flex;
+  margin: 24px 0 16px;
+  align-items: center;
+  gap: 14px;
+}
+
+.verdict h1 {
+  margin: 0;
+}
+
+.verdict p {
+  margin: 2px 0 0;
+}
+
+.card.next {
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.card.next p {
+  margin: 0;
+}
+
+.icon {
+  flex: none;
+  fill: var(--border);
+  stroke: var(--muted);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon circle {
+  stroke: none;
+}
+
+.icon path {
+  fill: none;
+}
+
+.icon .ring {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2.6;
+}
+
+.icon.ok {
+  fill: var(--ok-ground);
+  stroke: var(--ok-text);
+}
+
+.icon.bad {
+  fill: var(--bad-ground);
+  stroke: var(--bad-text);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--tag-ground);
+  color: var(--tag-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.status.closed {
+  border: 1px solid var(--border);
+  background: var(--ground);
+  color: var(--muted);
+}
+
+.centered {
+  justify-items: center;
+  text-align: center;
+}
+
+.centered .status {
+  justify-self: center;
+}
+
+.journey {
+  display: grid;
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.journey h1 {
+  margin: 0;
+}
+
+.journey .hint {
+  margin: 0;
+}
+
+.rows {
+  padding: 4px 16px;
+}
+
+.rows div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  border-top: 1px solid var(--border);
+}
+
+.rows div:first-child {
+  border-top: 0;
+}
+
+.rows dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rows dd {
+  margin: 0;
+}
+
+.result {
+  display: grid;
+  gap: 14px;
+}
+
+.result .verdict {
+  margin-bottom: 0;
+}
+
+.attachments {
+  display: grid;
+  padding: 4px 16px;
+}
+
+.attachments > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+}
+
+.attachments > div + div {
+  border-top: 1px solid var(--border);
+}
+
+.attachments b {
+  flex: 1;
+  font-size: 0.9rem;
+}
+
+.attachments a,
+.link {
+  min-height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  background: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.thumb {
+  width: 40px;
+  height: 48px;
+  flex: none;
+  border-radius: 8px;
+  background: var(--ground);
+  object-fit: cover;
+}
+
+.thumb.pdf {
+  background:
+    linear-gradient(var(--border) 0 0) 10px 14px / 20px 3px no-repeat,
+    linear-gradient(var(--border) 0 0) 10px 22px / 20px 3px no-repeat,
+    linear-gradient(var(--border) 0 0) 10px 30px / 14px 3px no-repeat,
+    var(--ground);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.summary dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.dock-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--segment-ground);
+}
+
+.segment label {
+  position: relative;
+  display: block;
+  margin: 0;
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+.segment label:has(:checked) {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+}
+
+.segment label:has(:focus-visible) {
+  outline: 2px solid var(--accent);
+}
+
+.segment input {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 8px;
+}
+
+.actions > :last-child {
+  flex: 1;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+}
+
+button.secondary,
+.button.secondary {
+  border: 1px solid var(--muted);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-weight: 600;
+}
+
+.check input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  flex: none;
+}
+
+.check small {
+  display: block;
+  font-weight: 400;
+}
+
+.extra {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--extra-border);
+  background: var(--extra-ground);
+  border-radius: 12px;
+}
+
+.check:not(:has(:checked)) + .extra {
+  display: none;
+}
+
+dialog {
+  width: min(560px, 100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px 0 16px;
+}
+
+.sheet-head h2 {
+  margin: 0;
+  font-family: inherit;
+  font-size: 1.1rem;
+}
+
+.close {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1.4rem;
+}
+
+.sheet-body {
+  overflow: auto;
+  padding: 12px 16px;
+}
+
+.sheet-foot {
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.sheet-foot button {
+  width: 100%;
+}
+
+dialog::backdrop {
+  background: rgb(14 20 30 / 0.55);
+}
+
+/* On phones the journey choice and the buttons stay at the bottom of the screen, as in an app: the page fills
+   the screen, the form fills the page, and the dock sticks to the bottom when the form is taller than the screen. */
+@media (max-width: 600px) {
+  body,
+  main,
+  #run,
+  #process-form,
+  .failed,
+  .journey,
+  .result {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  main,
+  #run,
+  #process-form,
+  .failed,
+  .journey,
+  .result {
+    flex: 1;
+    width: 100%;
+  }
+
+  .dock {
+    position: sticky;
+    bottom: 0;
+    margin: auto -16px -16px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .dock .actions {
+    margin: 12px 0 4px;
+  }
+
+  .dock .actions + .actions {
+    margin-top: 0;
+  }
+
+  /* The flex display above would otherwise show them while hidden. */
+  #run[hidden],
+  .failed[hidden] {
+    display: none;
+  }
+
+  /* Customize opens as a bottom sheet, with a grab handle on top. */
+  dialog {
+    width: 100%;
+    max-width: 100%;
+    max-height: 90dvh;
+    margin: auto 0 0;
+    border-radius: 20px 20px 0 0;
+  }
+
+  dialog::before {
+    content: "";
+    width: 40px;
+    height: 4px;
+    margin: 10px auto 0;
+    border-radius: 2px;
+    background: var(--border);
+  }
+}
+
+hr {
+  margin: 24px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.code {
+  overflow-x: auto;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--code-ground);
+  color: var(--code-text);
+  font-size: 0.85rem;
+}
+
+#selfie {
+  display: block;
+  max-width: 100%;
+  margin: 16px auto 0;
+  border-radius: 8px;
+}
+
+/* Last, so it wins over the display set above on the same elements. */
+[hidden] {
+  display: none;
+}

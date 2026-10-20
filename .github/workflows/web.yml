@@ -1,0 +1,32 @@
+name: web
+
+on:
+  workflow_call:
+
+defaults:
+  run:
+    working-directory: web
+
+jobs:
+  build:
+    runs-on: unico-linux
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: web/.node-version
+      - run: |
+          npm ci
+          npm run lint
+          npm test
+      # Each journey mode lives in its own folder. Delete one at a time and check the app still works without it.
+      - run: |
+          for mode in journey/*/; do
+            copy="$RUNNER_TEMP/without-$(basename "$mode")"
+            cp -R . "$copy"
+            rm -rf "$copy/$mode"
+            echo "Testing without $mode"
+            (cd "$copy" && npm test)
+          done
