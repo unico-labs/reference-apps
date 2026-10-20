@@ -22,7 +22,7 @@ Inside each app:
 | Folder | Contents |
 |---|---|
 | `settings/` | Environment (UAT/PROD) and credentials. On web, the server's `.env`. On mobile, demo-mode credentials |
-| `flows/` | The create-process form: the flow typed by name, the person and the extra fields. On iOS, still the Sign-up × Step-up menu with its copy of `flows.json` |
+| `flows/` | The create-process form: the flow typed by name, the person and the extra fields |
 | `journey/direct-access/` | Web only: same-tab redirect to the journey link |
 | `journey/journeys-sdk/` | Web only: `unico-journey-sdk` with the widget |
 | `journey/native-sdk/` | Mobile only: Unico's native SDK, opened with the `webAppToken` |
@@ -33,7 +33,7 @@ Each journey mode under `journey/` is self-contained. Use the apps as a referenc
 
 ## Picking a flow
 
-Pick by use case (sign-up or step-up) and region (Global, Brazil, Mexico). [`flows.json`](flows.json) mirrors the [Flows](https://developer.unico.io/developers/start/flows) page in the docs, with each flow's region, group, capabilities and extra form fields. Each app embeds an identical copy, and CI fails if a copy drifts from the root file.
+Every app asks for the flow by name. The API doesn't list the flows an account has, so a wrong or disabled flow fails on creation, and the app shows the API's answer as returned. The [Flows](https://developer.unico.io/developers/start/flows) page in the docs lists every flow, its capabilities and the extra fields it needs; the apps turn those fields on in Customize.
 
 ## Hard rules
 
