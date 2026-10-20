@@ -9,13 +9,11 @@ One Flutter app that creates a process, opens the journey with Unico's official 
 Requires the current stable Flutter, a **physical device** (the SDK refuses emulators and simulators) with its toolchain (Android SDK, or Xcode with CocoaPods for iOS) and:
 
 - UAT credentials: unique account name, tenant ID and `.pem` private key, as in [Authentication](https://developer.unico.io/developers/start/authentication). The app builds the JWT `iss` from the first two; See the root [README](../README.md#credentials);
-- an SDK key from Unico's Onboarding team, linked to the app's ID: package name and SHA-256 for Android, bundle ID and Team ID for iOS. This app uses `io.unico.reference` for both. Change it in [`android/app/build.gradle.kts`](android/app/build.gradle.kts) (`applicationId`), in the iOS project (`PRODUCT_BUNDLE_IDENTIFIER`) and in [`settings/settings.dart`](settings/settings.dart) (`buildBundleIdentifier`) to the one Unico linked. For a demo, Connect also lets you type another ID without rebuilding.
-
-The entry point is `app/main.dart`, so the sources sit in the same folders as every other app in this repo. Pass it with `-t`:
+- an SDK key from Unico's Onboarding team, linked to the app's ID: package name and SHA-256 for Android, bundle ID and Team ID for iOS. This app uses `io.unico.reference` for both. Change it in [`android/app/build.gradle.kts`](android/app/build.gradle.kts) (`applicationId`), in the iOS project (`PRODUCT_BUNDLE_IDENTIFIER`) and in [`lib/settings/settings.dart`](lib/settings/settings.dart) (`buildBundleIdentifier`) to the one Unico linked. For a demo, Connect also lets you type another ID without rebuilding.
 
 ```sh
 flutter pub get
-flutter run -t app/main.dart
+flutter run
 ```
 
 On the device, fill in Connect: the unique account name, tenant ID, the `.pem` key (imported from a file or pasted), the SDK key and the bundle ID / application ID. The hosts come filled in with UAT under API endpoints. **Verify connection** asks Unico for a token before saving. Then type the name of a flow your account has (see [Flows](https://developer.unico.io/developers/start/flows)), add your own document and tap **Start test**. Customize holds the optional and extra fields.
@@ -30,9 +28,9 @@ The tests run on the Dart VM against a local fake of the Unico endpoints and nee
 flutter test
 ```
 
-## Using `api/unico.dart` as a reference
+## Using `lib/api/unico.dart` as a reference
 
-[`api/unico.dart`](api/unico.dart) shows every Unico call this app makes, with `package:http` and `dart_jsonwebtoken` and no Flutter imports. It signs the JWT as in [Authentication](https://developer.unico.io/developers/start/authentication), caches the access token and renews it when 10 minutes or less remain. On a device it is demo code; on a Dart server it is the same client.
+[`lib/api/unico.dart`](lib/api/unico.dart) shows every Unico call this app makes, with `package:http` and `dart_jsonwebtoken` and no Flutter imports. It signs the JWT as in [Authentication](https://developer.unico.io/developers/start/authentication), caches the access token and renews it when 10 minutes or less remain. On a device it is demo code; on a Dart server it is the same client.
 
 ```dart
 final unico = Unico(

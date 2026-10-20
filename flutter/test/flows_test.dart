@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import '../flows/flows.dart';
+import 'package:unico_reference/flows/flows.dart';
 
 void main() {
   const person = {'flow': 'idlive_r2', 'duiType': 'DUI_TYPE_BR_CPF', 'duiValue': '12345678909'};

@@ -3,7 +3,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../api/unico.dart';
-import '../app/ui.dart';
+import '../ui.dart';
 import 'settings.dart';
 
 extension Environment on Settings {

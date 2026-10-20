@@ -8,7 +8,7 @@ One Flutter app with Material 3 and a plain `Navigator`. It creates the process,
 
 **Demo mode.** The app has no server, so it takes the service account on the Connect screen and calls Unico from the device. That is for demonstration only: the Connect screen says so where the key is entered, and the code is marked `DEMO ONLY`. In production, your server holds the key, creates the process and sends the app only the `webAppToken`. The server side of this repo is [`../web/api/unico.js`](../web/api/unico.js).
 
-**Layout.** The Dart sources live in the same folders as every other app in this repo, not under `lib/`, and the entry point is `app/main.dart` (`flutter run -t app/main.dart`). In your app they go under `lib/` as usual.
+**Layout.** The Dart sources live under `lib/`, in the same folders as every other app in this repo, and the entry point is `lib/main.dart`. The paths below are relative to `lib/`.
 
 ## Where each piece is
 
@@ -20,9 +20,9 @@ One Flutter app with Material 3 and a plain `Navigator`. It creates the process,
 | `flows/form_screen.dart` | Run a flow: the flow typed by name, the document, a preview of the request, the Customize sheet, and the error screen with the response as returned | Reference for your own screens |
 | `journey/native-sdk/` | Asks for the camera, opens `unico_check` with the `webAppToken`, returns the `processId` from `onSuccess`, and sends the user to Settings when the camera is denied. Behind the camera, the page shows the journey in progress, then why it stopped. Imports nothing from the other folders | Reference for opening the journey in Flutter |
 | `result/` | One `GET` for the process and one for the selfie. A heading names the result in words (`PROCESS_RESULT_OK` as Success, in `verdict.dart`) and the JSON is shown raw; the evidence set fetched when opened and drawn in-app with `pdfx` | Reference for the calls after `onSuccess` |
-| `app/main.dart`, `app/ui.dart` | Navigation and the top bar; the colors and shared pieces of the screens | Glue; the navigation and look are yours |
+| `main.dart`, `ui.dart` | Navigation and the top bar; the colors and shared pieces of the screens | Glue; the navigation and look are yours |
 | `android/`, `ios/` | Platform projects: app name, launch screen logo, application ID, camera permission, Unico's Maven repository, ProGuard rules, `allowBackup="false"` | Compare with your own platform setup |
-| `test/` | Dart VM tests for `api/` against a local fake of Unico, for `flows/flows.dart` and `result/verdict.dart`, and a widget test that the app opens | Reference for testing your client |
+| `../test/` | Dart VM tests for `api/` against a local fake of Unico, for `flows/flows.dart` and `result/verdict.dart`, and a widget test that the app opens | Reference for testing your client |
 
 ## The flow, end to end
 

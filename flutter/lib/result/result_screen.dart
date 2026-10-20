@@ -7,7 +7,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../api/unico.dart';
-import '../app/ui.dart';
+import '../ui.dart';
 import 'verdict.dart';
 
 const _pretty = JsonEncoder.withIndent('  ');

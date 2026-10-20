@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
-import '../app/ui.dart';
+import '../ui.dart';
 import 'flows.dart';
 
 // https://developer.unico.io/developers/api-reference/post-processes (duiType values)
