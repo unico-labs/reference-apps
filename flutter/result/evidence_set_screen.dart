@@ -48,7 +48,10 @@ class _EvidenceSetScreenState extends State<EvidenceSetScreen> {
       ),
       AsyncSnapshot(:final error?) => SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: SelectableText(describe(error), style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+        child: SelectableText(
+          describe(error),
+          style: const TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo'], fontSize: 12),
+        ),
       ),
       _ => const Center(child: CircularProgressIndicator()),
     },

@@ -13,10 +13,13 @@ enum _State { opening, cameraDenied, ended }
 
 // `sdkKey` comes from Unico's Onboarding team, linked to `bundleIdentifier` (the Android application ID or
 // the iOS bundle ID). `environment` must match the hosts the process was created on: UnicoEnvironment.UAT or .PROD.
+// `flow` and `processId` are only shown on the page behind the camera.
 class NativeSdkJourney extends StatefulWidget {
   const NativeSdkJourney({
     super.key,
     required this.webAppToken,
+    required this.flow,
+    required this.processId,
     required this.sdkKey,
     required this.bundleIdentifier,
     required this.environment,
@@ -25,6 +28,8 @@ class NativeSdkJourney extends StatefulWidget {
   });
 
   final String webAppToken;
+  final String flow;
+  final String processId;
   final String sdkKey;
   final String bundleIdentifier;
   final UnicoEnvironment environment;
@@ -109,28 +114,123 @@ class _NativeSdkJourneyState extends State<NativeSdkJourney> implements UnicoLis
   @override
   void onSystemChangedTypeCameraTimeoutFaceInference() {}
 
+  // The page behind the SDK's camera: what the person sees while the journey runs, and after it stops.
   @override
   Widget build(BuildContext context) {
-    final title = Theme.of(context).textTheme.headlineSmall;
-    final children = switch (state) {
-      _State.opening => [Text('Opening the journey', style: title), const CircularProgressIndicator()],
+    const mutedInk = Color(0xFF5A6573);
+    const lineColor = Color(0xFFD9DFE7);
+    Widget status(String text, {bool inProgress = false}) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: inProgress ? const Color(0xFFE4ECFC) : Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: inProgress ? Colors.transparent : lineColor),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: inProgress ? const Color(0xFF1B45AB) : mutedInk,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+    Widget title(String title, String text) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 6,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+        SelectableText(text, style: const TextStyle(color: mutedInk, fontSize: 14)),
+      ],
+    );
+    Widget row(String key, String value) => SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              key.toUpperCase(),
+              style: const TextStyle(color: mutedInk, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo'], fontSize: 13),
+          ),
+        ],
+      ),
+    );
+    final (header, actions) = switch (state) {
+      _State.opening => (
+        [
+          status('In progress', inProgress: true),
+          title(
+            'Journey in progress',
+            'Finish the journey on the camera screen. This page moves to the result when you are done.',
+          ),
+        ],
+        <Widget>[],
+      ),
       // Once the user denies the camera for good, the OS stops asking, so the way back is the app's settings.
-      _State.cameraDenied => [
-        Text('Camera access needed', style: title),
-        const Text('The journey takes a selfie. Allow the camera in Settings, then try again.'),
-        FilledButton(onPressed: openAppSettings, child: const Text('Open Settings')),
-        OutlinedButton(onPressed: start, child: const Text('Try again')),
-        OutlinedButton(onPressed: widget.onBack, child: const Text('Back')),
-      ],
-      _State.ended => [
-        Text('Journey not finished', style: title),
-        SelectableText(message),
-        OutlinedButton(onPressed: widget.onBack, child: const Text('Back')),
-      ],
+      _State.cameraDenied => (
+        [
+          status('Camera blocked'),
+          title('Camera access needed', 'The journey takes a selfie. Allow the camera in Settings, then try again.'),
+        ],
+        [
+          FilledButton(onPressed: openAppSettings, child: const Text('Open Settings')),
+          OutlinedButton(onPressed: start, child: const Text('Try again')),
+        ],
+      ),
+      // The process stays where the journey stopped, so a new test creates a new one.
+      _State.ended => (
+        [status('Camera closed'), title('Journey not finished', message)],
+        [FilledButton(onPressed: widget.onBack, child: const Text('Start a new test'))],
+      ),
     };
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, spacing: 12, children: children),
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Align(alignment: Alignment.centerLeft, child: header.first),
+              const SizedBox(height: 16),
+              header.last,
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: lineColor),
+                ),
+                child: Column(
+                  children: [
+                    row('Flow', widget.flow),
+                    const Divider(height: 1, color: lineColor),
+                    row('Process ID', widget.processId),
+                    const Divider(height: 1, color: lineColor),
+                    row('Opened with', 'Native SDK'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (actions.isNotEmpty)
+          Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: lineColor)),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: SafeArea(
+              top: false,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, spacing: 10, children: actions),
+            ),
+          ),
+      ],
     );
   }
 }

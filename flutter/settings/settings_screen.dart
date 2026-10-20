@@ -1,14 +1,23 @@
-// DEMO ONLY: the settings screen. In production none of this is on the device; your server holds the credentials.
+// DEMO ONLY: the Connect screen. In production none of this is on the device; your server holds the credentials.
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
+import '../api/unico.dart';
+import '../app/ui.dart';
 import 'settings.dart';
 
+extension Environment on Settings {
+  String get environment => hosts == Hosts.prod ? 'PROD' : 'UAT';
+}
+
+// `onVerify` asks Unico for an access token with these settings. It returns an error to show, or null when the
+// token came back; then the verified screen shows, and Continue saves the settings.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.initial, required this.onSave});
+  const SettingsScreen({super.key, required this.initial, required this.onVerify, required this.onContinue});
 
   final Settings initial;
-  final ValueChanged<Settings> onSave;
+  final Future<String?> Function(Settings) onVerify;
+  final ValueChanged<Settings> onContinue;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -19,6 +28,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // The stored key is never shown again. Leave the field empty to keep it.
   final pem = TextEditingController();
   String? error;
+  bool sending = false;
+  bool advanced = false;
+  Settings? verified;
 
   // A .pem has no registered type on either platform, so the picker accepts any file and the key check decides.
   Future<void> importPem() async {
@@ -26,7 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (file != null) pem.text = await file.readAsString();
   }
 
-  void save() {
+  Future<void> verify() async {
     final next = pem.text.trim().isEmpty ? settings : settings.copyWith(privateKeyPem: pem.text.trim());
     String? problem;
     if (!next.isComplete) {
@@ -38,15 +50,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         problem = e.message;
       }
     }
-    setState(() => error = problem);
-    if (problem == null) widget.onSave(next);
+    setState(() {
+      error = problem;
+      sending = problem == null;
+    });
+    if (problem != null) return;
+    final result = await widget.onVerify(next);
+    if (!mounted) return;
+    setState(() {
+      error = result;
+      sending = false;
+      if (result == null) verified = next;
+    });
   }
-
-  Widget field(String label, String value, ValueChanged<String> onChanged, {String? helper}) => TextFormField(
-    initialValue: value,
-    onChanged: (v) => setState(() => onChanged(v.trim())),
-    decoration: InputDecoration(labelText: label, helperText: helper, border: const OutlineInputBorder()),
-  );
 
   @override
   void dispose() {
@@ -56,70 +72,116 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Text(
-          'Hosts come filled in with UAT. See developer.unico.io/developers/start/environments.',
-          style: text.bodySmall,
+    final done = verified;
+    if (done != null) {
+      return Screen(
+        content: [
+          Heading(
+            icon: Icons.check,
+            ink: okInk,
+            ground: okGround,
+            title: 'Credentials verified',
+            subtitle: 'We got a token from Unico ${done.environment}.',
+          ),
+          Panel(
+            children: [
+              KeyValue('Service account', done.account),
+              KeyValue('Tenant ID', done.tenant),
+              KeyValue('Environment', done.environment),
+            ],
+          ),
+        ],
+        dock: [FilledButton(onPressed: () => widget.onContinue(done), child: const Text('Continue'))],
+      );
+    }
+    return Screen(
+      content: [
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Connect your Unico account',
+              style: TextStyle(color: ink, fontSize: 22, fontWeight: FontWeight.w800),
+            ),
+            Hint('Done once. Used to sign every request.'),
+          ],
         ),
-        const SizedBox(height: 12),
-        field('Identity host', settings.identityHost, (v) => settings = settings.copyWith(identityHost: v)),
-        const SizedBox(height: 12),
-        field('API host', settings.apiHost, (v) => settings = settings.copyWith(apiHost: v)),
-        const SizedBox(height: 12),
-        field('Unique account name', settings.account, (v) => settings = settings.copyWith(account: v)),
-        const SizedBox(height: 12),
-        // The JWT iss is built from these two: https://developer.unico.io/developers/start/authentication
-        field(
-          'Tenant ID',
-          settings.tenant,
-          (v) => settings = settings.copyWith(tenant: v),
-          helper: settings.account.isEmpty || settings.tenant.isEmpty
-              ? 'iss: <account_name>@<tenant_id>.iam.acesso.io'
-              : 'iss: ${settings.serviceAccount}',
-        ),
-        const SizedBox(height: 16),
-        Text('Private key (.pem)', style: text.titleMedium),
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton(onPressed: importPem, child: const Text('Import file')),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: pem,
-          minLines: 4,
-          maxLines: 8,
-          style: text.bodySmall?.copyWith(fontFamily: 'monospace'),
-          decoration: InputDecoration(
-            labelText: widget.initial.privateKeyPem.isEmpty
-                ? 'Or paste it here'
-                : 'Saved. Paste or import to replace it',
-            border: const OutlineInputBorder(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(color: warnGround, borderRadius: BorderRadius.circular(10)),
+          child: const Text(
+            'Demo only. Credentials stay on this device; in your own app, keep them on your backend.',
+            style: TextStyle(color: warnInk, fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),
-        const SizedBox(height: 12),
-        field(
-          'SDK key',
-          settings.sdkKey,
-          (v) => settings = settings.copyWith(sdkKey: v),
-          helper: 'Issued by Unico for the bundle ID / application ID below',
+        Field(
+          label: 'Service account',
+          hint: 'Your unique account name',
+          initial: settings.account,
+          onChanged: (v) => setState(() => settings = settings.copyWith(account: v.trim())),
         ),
-        const SizedBox(height: 12),
-        field(
-          'Bundle ID / application ID',
-          settings.bundleIdentifier,
-          (v) => settings = settings.copyWith(bundleIdentifier: v),
-          helper: 'This build is $buildBundleIdentifier. Change it only to try a key issued for another ID',
+        // The JWT iss is built from these two: https://developer.unico.io/developers/start/authentication
+        Field(
+          label: 'Tenant ID',
+          hint: settings.account.isEmpty || settings.tenant.isEmpty
+              ? 'iss: <account_name>@<tenant_id>.iam.acesso.io'
+              : 'iss: ${settings.serviceAccount}',
+          initial: settings.tenant,
+          onChanged: (v) => setState(() => settings = settings.copyWith(tenant: v.trim())),
         ),
-        if (error != null) ...[
-          const SizedBox(height: 12),
-          Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        Field(
+          label: 'Private key (.pem)',
+          placeholder: widget.initial.privateKeyPem.isEmpty
+              ? '-----BEGIN PRIVATE KEY-----'
+              : 'Saved. Paste or import to replace it',
+          hint: 'Paste it or import the file. Stored in the Android Keystore or the iOS Keychain.',
+          mono: true,
+          lines: 3,
+          controller: pem,
+          onChanged: (_) {},
+        ),
+        OutlinedButton(onPressed: importPem, child: const Text('Import .pem file')),
+        // https://developer.unico.io/developers/sdks-and-tools/flutter/installation
+        Field(
+          label: 'SDK key',
+          hint: 'Issued by Unico for the bundle ID / application ID below',
+          initial: settings.sdkKey,
+          onChanged: (v) => setState(() => settings = settings.copyWith(sdkKey: v.trim())),
+        ),
+        Field(
+          label: 'Bundle ID / application ID',
+          hint: 'This build is $buildBundleIdentifier. Change it only to try a key issued for another ID',
+          initial: settings.bundleIdentifier,
+          onChanged: (v) => setState(() => settings = settings.copyWith(bundleIdentifier: v.trim())),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () => setState(() => advanced = !advanced),
+            child: Text(
+              advanced ? 'Hide API endpoints' : 'API endpoints (advanced)',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        // https://developer.unico.io/developers/start/environments
+        if (advanced) ...[
+          Field(
+            label: 'Identity host',
+            initial: settings.identityHost,
+            onChanged: (v) => setState(() => settings = settings.copyWith(identityHost: v.trim())),
+          ),
+          Field(
+            label: 'API host',
+            initial: settings.apiHost,
+            onChanged: (v) => setState(() => settings = settings.copyWith(apiHost: v.trim())),
+          ),
         ],
-        const SizedBox(height: 16),
-        FilledButton(onPressed: save, child: const Text('Save')),
+        if (error != null) Panel(children: [CodeBlock(error!)]),
+      ],
+      dock: [
+        FilledButton(onPressed: sending ? null : verify, child: Text(sending ? 'Verifying…' : 'Verify connection')),
+        const Hint("No service account yet? Ask Unico's onboarding team.", align: TextAlign.center),
       ],
     );
   }

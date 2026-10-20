@@ -8,7 +8,7 @@
     <!-- allowBackup="false": the demo keeps credentials on the device, so app data stays out of backups. -->
     <application
         android:allowBackup="false"
-        android:label="Unico API reference"
+        android:label="Unico Reference App"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

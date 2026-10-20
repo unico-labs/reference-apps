@@ -97,7 +97,9 @@ class Unico {
     return token;
   }
 
-  Future<String> _token() {
+  // Public so an app can check its credentials on their own: a token proves the account, tenant and key are right,
+  // but says nothing about which flows the account has.
+  Future<String> accessToken() {
     final cached = _accessToken;
     if (cached != null && DateTime.now().isBefore(_renewAt)) return Future.value(cached);
     // Concurrent callers share one request. Two assertions signed in the same second are identical,
@@ -107,7 +109,7 @@ class Unico {
 
   Future<Map<String, dynamic>> _call(String method, String path, [Map<String, dynamic>? body]) async {
     final request = http.Request(method, Uri.parse('${hosts.api}$path'))
-      ..headers['Authorization'] = 'Bearer ${await _token()}'
+      ..headers['Authorization'] = 'Bearer ${await accessToken()}'
       ..headers['Content-Type'] = 'application/json';
     if (body != null) request.body = jsonEncode(body);
     return _parse(await request.send().then(http.Response.fromStream).timeout(_timeout));

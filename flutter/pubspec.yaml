@@ -33,6 +33,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # Copy of the root flows.json. CI fails if it drifts.
-  assets:
-    - flows/flows.json

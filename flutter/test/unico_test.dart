@@ -44,7 +44,12 @@ void main() {
                 'application/json',
                 '{"access_token":"token-${tokenRequests.length}","token_type":"Bearer","expires_in":3600}',
               )
-            : (tokenStatus, 'application/json', '{"error":{"code":"1.2.21","message":"wrong private key"}}');
+            // The envelope Unico's token endpoint answers with; the docs list the codes but not the envelope.
+            : (
+                tokenStatus,
+                'application/json',
+                '{"error":"server_error","error_description":"1.2.21: wrong private key"}',
+              );
       } else {
         apiRequests.add([request.method, path, request.headers.value('authorization') ?? '', body]);
         answer = switch ('${request.method} $path') {
@@ -168,6 +173,22 @@ void main() {
     expect(error.status, 401);
     expect(error.body, contains('1.2.21'));
     expect(apiRequests, isEmpty);
+  });
+
+  test('verifying the connection requests a token and calls nothing else', () async {
+    await unico().accessToken();
+
+    expect(tokenRequests, hasLength(1));
+    expect(apiRequests, isEmpty);
+  });
+
+  test('verifying with a wrong key fails with the token error as returned', () async {
+    tokenStatus = 401;
+
+    final error = await unicoError(unico().accessToken());
+
+    expect(error.status, 401);
+    expect(error.body, contains('1.2.21'));
   });
 
   test('a malformed process id is refused before anything is sent', () async {

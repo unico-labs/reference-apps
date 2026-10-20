@@ -1,69 +1,101 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
 import '../flows/flows.dart';
 
 void main() {
-  final flows = parseFlows(File('flows/flows.json').readAsStringSync());
-  Flow flow(String id) => flows.firstWhere((f) => f.id == id);
+  const person = {'flow': 'idlive_r2', 'duiType': 'DUI_TYPE_BR_CPF', 'duiValue': '12345678909'};
+  Map<String, dynamic> body([Map<String, String> extra = const {}, List<String> files = const []]) =>
+      buildProcessBody({...person, ...extra}, files, '/');
 
-  test('filters by group and region', () {
-    expect(filterFlows(flows, 'step-up', 'all').map((f) => f.id), ['idsmart_r2', 'idsmart_tp1']);
-    expect(filterFlows(flows, 'sign-up', 'mexico').map((f) => f.id), ['idtrust_r2-idgov', 'idtrustdocs_r2-idgov']);
-  });
-
-  test('sends only the fields the user filled in', () {
-    final body = buildProcessBody(
-      flow('idlive_r2'),
-      {'duiType': 'DUI_TYPE_BR_CPF', 'duiValue': '12345678909', 'email': '', 'purpose': ''},
-      [],
-      '/',
-    );
-
+  test('sends the typed flow and only the fields the user filled in', () {
     expect(
-      jsonEncode(body),
-      '{"flow":"idlive_r2","callbackUri":"/","person":{"duiType":"DUI_TYPE_BR_CPF","duiValue":"12345678909"}}',
+      jsonEncode(body({'flow': ' idlive_r2 ', 'email': '', 'purpose': ''})),
+      jsonEncode({
+        'flow': 'idlive_r2',
+        'callbackUri': '/',
+        'person': {'duiType': 'DUI_TYPE_BR_CPF', 'duiValue': '12345678909'},
+      }),
     );
   });
 
-  test('adds useCase and references for Smart Revalidation', () {
-    final body = buildProcessBody(
-      flow('idsmart_r2'),
-      {'useCase': 'USE_CASE_LOGIN', 'referenceProcessId': 'abc-123'},
-      [],
-      '/',
-    );
-
-    expect(body['useCase'], 'USE_CASE_LOGIN');
-    expect(
-      jsonEncode(body['references']),
-      '[{"referenceType":"REFERENCE_TYPE_PROCESS_ID","referenceContent":"abc-123"}]',
-    );
+  test('leaves the person out when no document number was typed', () {
+    expect(buildProcessBody({'flow': 'idlive_r2', 'duiType': 'DUI_TYPE_BR_CPF'}, [], '/'), {
+      'flow': 'idlive_r2',
+      'callbackUri': '/',
+    });
   });
 
-  test('adds document files only for flows with Face Document Match', () {
-    final fields = {'documentPurpose': 'DOCUMENT_PURPOSE_ONBOARDING'};
-
-    final withDocs = buildProcessBody(flow('idunicodocs_r2'), fields, ['aGVsbG8='], '/');
-    final withoutDocs = buildProcessBody(flow('idlive_r2'), fields, ['aGVsbG8='], '/');
-
-    expect(jsonEncode(withDocs['document']), '{"purpose":"DOCUMENT_PURPOSE_ONBOARDING","files":[{"data":"aGVsbG8="}]}');
-    expect(withoutDocs.containsKey('document'), isFalse);
+  test('maps the name, email and phone to the person', () {
+    expect(body({'friendlyName': 'Ana', 'email': 'ana@example.com', 'phone': '5511999999999'})['person'], {
+      'duiType': 'DUI_TYPE_BR_CPF',
+      'duiValue': '12345678909',
+      'friendlyName': 'Ana',
+      'email': 'ana@example.com',
+      'phone': '5511999999999',
+    });
   });
 
-  test('builds contextualization with the reason under its locale', () {
-    final body = buildProcessBody(
-      flow('idlive_r2'),
-      {'companyName': 'Acme', 'currency': 'BRL', 'price': '10.5', 'locale': 'enUs', 'reason': 'Purchase'},
-      [],
-      '/',
-    );
+  test('adds the document files and purpose when the document is turned on', () {
+    expect(body({'withDocument': 'true', 'documentPurpose': 'DOCUMENT_PURPOSE_ONBOARDING'}, ['aGVsbG8='])['document'], {
+      'purpose': 'DOCUMENT_PURPOSE_ONBOARDING',
+      'files': [
+        {'data': 'aGVsbG8='},
+      ],
+    });
+  });
 
-    expect(
-      jsonEncode(body['contextualization']),
-      '{"company_name":"Acme","currency":"BRL","price":10.5,"locale":{"enUs":{"reason":"Purchase"}}}',
-    );
+  test('leaves the document out when it is turned off or has no file', () {
+    expect(body({}, ['aGVsbG8=']).containsKey('document'), isFalse);
+    expect(body({'withDocument': 'true'}).containsKey('document'), isFalse);
+  });
+
+  test('adds useCase and a process reference when they are turned on', () {
+    final b = body({'withReferences': 'true', 'useCase': 'USE_CASE_LOGIN', 'referenceProcessId': 'abc-123'});
+
+    expect(b['useCase'], 'USE_CASE_LOGIN');
+    expect(b['references'], [
+      {'referenceType': 'REFERENCE_TYPE_PROCESS_ID', 'referenceContent': 'abc-123'},
+    ]);
+  });
+
+  test('leaves useCase and references out when they are turned off', () {
+    expect(body({'useCase': 'USE_CASE_LOGIN', 'referenceProcessId': 'abc-123'}).keys, [
+      'flow',
+      'callbackUri',
+      'person',
+    ]);
+  });
+
+  test('maps expiresIn and purpose', () {
+    final b = body({'expiresIn': '3600s', 'purpose': 'creditprocess'});
+
+    expect(b['expiresIn'], '3600s');
+    expect(b['purpose'], 'creditprocess');
+  });
+
+  test('builds contextualization with the reason under its locale when it is turned on', () {
+    final b = body({
+      'withContextualization': 'true',
+      'companyName': 'Acme',
+      'currency': 'BRL',
+      'price': '10.5',
+      'locale': 'enUs',
+      'reason': 'Purchase',
+    });
+
+    expect(b['contextualization'], {
+      'company_name': 'Acme',
+      'currency': 'BRL',
+      'price': 10.5,
+      'locale': {
+        'enUs': {'reason': 'Purchase'},
+      },
+    });
+  });
+
+  test('leaves contextualization out when it is turned off', () {
+    expect(body({'companyName': 'Acme'}).containsKey('contextualization'), isFalse);
   });
 }
