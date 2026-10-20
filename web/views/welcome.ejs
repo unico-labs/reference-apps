@@ -5,7 +5,7 @@
 
 <p class="lab">How it works</p>
 <ol class="steps">
-  <li><b>Your server is the setup</b><span class="hint">The credentials already live in its configuration. Nothing to enter here.</span></li>
+  <li><b>Credentials stay on your server</b><span class="hint">The server reads them from its <code>.env</code>. Nothing to enter here.</span></li>
   <li><b>Run a flow</b><span class="hint">Type the flow name and the person's document.</span></li>
   <li><b>Read the result</b><span class="hint">See the response, the selfie and the evidence set.</span></li>
 </ol>
@@ -23,10 +23,10 @@
 <div class="card stack">
   <p class="lab">Couldn't get a token</p>
   <pre class="code"><%= tokenError %></pre>
-  <p class="hint">Check <code>UNICO_SERVICE_ACCOUNT</code> and the private key in the server's <code>.env</code>, then restart it.</p>
+  <p class="hint">Check <code>UNICO_ENV</code>, <code>UNICO_SERVICE_ACCOUNT</code> and <code>UNICO_PRIVATE_KEY_PATH</code> in the server's <code>.env</code>, then restart the server. <a href="https://developer.unico.io/developers/start/authentication">Authentication</a> lists each error code.</p>
 </div>
 <% } %>
-<p class="hint">Read from your server's <code>.env</code>. The private key never reaches the browser. <a href="https://developer.unico.io/developers/start/authentication">Authentication guide</a></p>
+<p class="hint">Read from your server's <code>.env</code>. The private key never reaches the browser. <a href="https://developer.unico.io/developers/start/authentication">Authentication</a></p>
 
 <div class="dock">
   <div class="actions"><a class="button" href="/run">Get started</a></div>

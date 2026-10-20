@@ -46,9 +46,21 @@ test('shows on the welcome page the token error raw when Unico refuses the crede
   assert.match(page, /Couldn.t get a token/);
   assert.match(page, /HTTP 401/);
   assert.match(page, /&lt;b&gt;bad&lt;\/b&gt;/);
+  assert.match(
+    page,
+    /Check <code>UNICO_ENV<\/code>, <code>UNICO_SERVICE_ACCOUNT<\/code> and <code>UNICO_PRIVATE_KEY_PATH<\/code>/,
+  );
+  assert.doesNotMatch(page, /<span class="pill"><svg/);
 });
 
-test('asks for the flow by name on the home page', async () => {
+test('says on the welcome page that the credentials stay on the server', async () => {
+  const page = await (await app.get('/')).text();
+
+  assert.match(page, /<b>Credentials stay on your server<\/b>/);
+  assert.match(page, /The server reads them from its <code>.env<\/code>\. Nothing to enter here\./);
+});
+
+test('asks for the flow by name on the form', async () => {
   const res = await app.get('/run');
   const page = await res.text();
 

@@ -15,13 +15,13 @@ npm ci
 cp .env.example .env
 ```
 
-Fill in `.env` with your service account. The server exits with a message if a value is missing, `PUBLIC_URL` isn't an http or https address, or the key file can't be read or isn't a PEM private key. Keep the `.pem` file exactly as you received it: a key pasted onto one line, or with literal `\n` in it, won't load.
+Fill in `.env` with your service account. The server exits with a message if a value is missing, `UNICO_SERVICE_ACCOUNT` isn't in the form `<account_name>@<tenant_id>.iam.acesso.io`, `PUBLIC_URL` isn't an http or https address, or the key file can't be read or isn't a PEM private key. Keep the `.pem` file exactly as you received it: a key pasted onto one line, or with literal `\n` in it, won't load.
 
 ```sh
 npm start
 ```
 
-Open http://localhost:3000. The welcome page shows the service account, tenant and environment from `.env`, and asks Unico for a token to check them: **Ready** means the credentials work; otherwise the page shows Unico's answer as returned. Select **Get started**, type the name of a flow your account has (see [Flows](https://developer.unico.io/developers/start/flows)) and fill in the form with your own document. The page previews the request as you type, and Customize holds the optional and extra fields.
+Open http://localhost:3000. The welcome page shows the service account, tenant and environment from `.env`, and asks Unico for a token to check them. **Ready** means Unico issued a token. A token proves the account, tenant and key, not which flows the account has. If Unico refuses, the page shows its answer as returned. Select **Get started**, type the name of a flow your account has (see [Flows](https://developer.unico.io/developers/start/flows)) and fill in the form with your own document. The page previews the request as you type, and Customize holds the optional and extra fields.
 
 The Journeys SDK only opens on a domain registered for the environment you use, over HTTPS. Register your domains with the Unico support team, as the [Web SDK](https://developer.unico.io/developers/sdks-and-tools/web) page says. If the widget doesn't open, check the browser console: `Domain not allowed` means the domain isn't registered. The SDK doesn't throw, so the page shows no error. Close DevTools before the capture: the capture treats open DevTools as a fraud signal and blocks the submission.
 
@@ -64,7 +64,7 @@ try {
 }
 ```
 
-`accessToken()` returns the cached token, or requests a new one. `getProcess(id)` returns `{ process: { id, state, result, ... } }`. `getSelfie(id)` and `getEvidenceSet(id)` return `{ fileContents, contentType }`, with the file in base64. Every non-2xx answer from Unico throws a `UnicoError` with the status and body as returned. A malformed process id throws an `InvalidInputError` before anything is sent.
+`accessToken()` returns the cached access token, or asks for a new one: call it to check the credentials without calling the API, as the welcome page does. `getProcess(id)` returns `{ process: { id, state, result, ... } }`. `getSelfie(id)` and `getEvidenceSet(id)` return `{ fileContents, contentType }`, with the file in base64. Every non-2xx answer from Unico throws a `UnicoError` with the status and body as returned. A malformed process id throws an `InvalidInputError` before anything is sent.
 
 ## Code
 

@@ -49,9 +49,8 @@ export function createApp({ unico, publicUrl, env, serviceAccount }) {
   app.use(express.static(`${import.meta.dirname}/public`));
   app.locals.journeys = journeys;
   app.locals.publicUrl = publicUrl;
-  // The service account is `<account>@<tenant>.iam.acesso.io`.
-  const [account, host] = serviceAccount.split('@');
-  const tenant = host.split('.')[0];
+  // The service account is `<account_name>@<tenant_id>.iam.acesso.io`, checked in settings/.
+  const [, account, tenant] = serviceAccount.match(/^(.+)@([^.]+)\./);
   app.locals.account = account;
   app.locals.connection = `${env.toUpperCase()} · ${app.locals.account}`;
   for (const journey of journeys.values()) journey.register?.(app);

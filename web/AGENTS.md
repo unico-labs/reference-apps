@@ -22,7 +22,7 @@ One Express server with EJS templates. It renders every page, holds the service 
 
 ## The flow, end to end
 
-1. `GET /` renders the welcome page with the account, tenant and environment from `.env`. It calls `accessToken()` and shows **Ready**, or Unico's answer as returned when the token is refused. The private key never reaches the page. **Get started** opens the form.
+1. `GET /` renders the welcome page with the account, tenant and environment from `.env`. It calls `accessToken()` and shows **Ready**. If Unico refuses the token, the page shows the status and body as returned; any other error, such as no network, is shown as is. The private key never reaches the page. **Get started** opens the form.
 2. `GET /run` renders the form. The flow is typed by name: the app doesn't know which flows the account has, so a wrong or disabled one fails on creation and the page shows the API's answer, raw, with the form still filled in behind it. `GET /run?references={id}` prefills a step-up on that process.
 3. `POST /process`: `app.js` builds the body with `callbackUri` set to `{PUBLIC_URL}/result` and calls `createProcess`, the same for every mode. `result/` sets the `unico_process_id` cookie, and the mode named in the form's `journey` field opens the journey:
    - `journey/direct-access/` answers `303` to `process.userRedirectUrl`.

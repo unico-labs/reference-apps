@@ -18,7 +18,7 @@ export const journeys = readdirSync(new URL('../journey/', import.meta.url), { w
   .map((entry) => entry.name);
 
 // Starts the app against a local fake of the Unico endpoints. `created` collects every Create Process body.
-// `token` replaces the answer to the token request.
+// `token` is the [status, body] the fake answers to POST /oauth2/token.
 export async function startApp({
   token = [200, { access_token: 'token', token_type: 'Bearer', expires_in: 3600 }],
 } = {}) {
