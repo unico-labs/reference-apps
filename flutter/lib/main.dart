@@ -1,4 +1,4 @@
-// Navigation and glue. Screens: Connect (settings), Run a flow, journey (native SDK), result, evidence set.
+// Navigation and glue. Screens: Welcome and setup (settings), Run a flow, journey (native SDK), result, evidence set.
 // Everything Unico-specific lives in the other folders; this file wires them together.
 import 'package:flutter/material.dart';
 import 'package:unico_check/unico_check.dart' show UnicoEnvironment;
@@ -39,12 +39,13 @@ class _ReferenceAppState extends State<ReferenceApp> {
       ? Unico(serviceAccount: s.serviceAccount, privateKey: parsePrivateKey(s.privateKeyPem), hosts: s.hosts)
       : null;
 
-  // The SDK environment follows the hosts in Connect: PROD hosts open the PROD journey, anything else UAT.
+  // The SDK environment follows the hosts in setup: PROD hosts open the PROD journey, anything else UAT.
   UnicoEnvironment get environment => settings.hosts == Hosts.prod ? UnicoEnvironment.PROD : UnicoEnvironment.UAT;
 
   NavigatorState get navigator => nav.currentState!;
 
-  // The top bar: the screen's title and, once connected, the environment and account, which open Connect.
+  // The top bar: the screen's title and, once set up, a pill with the environment and account that opens
+  // API credentials.
   Route<void> page(String title, Widget body, {bool pill = true}) => MaterialPageRoute(
     builder: (_) => Scaffold(
       appBar: AppBar(
@@ -54,7 +55,7 @@ class _ReferenceAppState extends State<ReferenceApp> {
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: InkWell(
-                onTap: () => navigator.push(connectPage()),
+                onTap: () => navigator.push(credentialsPage()),
                 borderRadius: BorderRadius.circular(999),
                 child: Pill('✓ ${settings.environment} · ${settings.account}'),
               ),
@@ -65,9 +66,17 @@ class _ReferenceAppState extends State<ReferenceApp> {
     ),
   );
 
-  Route<void> connectPage() => page(
-    'Connect',
-    SettingsScreen(
+  // Welcome has no top bar, so it doesn't go through page().
+  Route<void> welcomePage() => MaterialPageRoute(
+    builder: (_) => Scaffold(
+      body: SafeArea(bottom: false, child: WelcomeScreen(onStart: () => navigator.push(credentialsPage()))),
+    ),
+  );
+
+  // The setup steps keep what was typed in memory, passed from screen to screen, until SDK settings saves it.
+  Route<void> credentialsPage() => page(
+    'Set up this app',
+    CredentialsScreen(
       initial: settings,
       onVerify: (next) async {
         // A token proves the account, tenant and key; it says nothing about the account's flows.
@@ -77,12 +86,27 @@ class _ReferenceAppState extends State<ReferenceApp> {
             privateKey: parsePrivateKey(next.privateKeyPem),
             hosts: next.hosts,
           ).accessToken();
-          return null;
         } on Object catch (e) {
           return describe(e);
         }
+        navigator.push(connectedPage(next));
+        return null;
       },
-      onContinue: (saved) async {
+    ),
+    pill: false,
+  );
+
+  Route<void> connectedPage(Settings next) => page(
+    'Set up this app',
+    ConnectedScreen(settings: next, onContinue: () => navigator.push(sdkSettingsPage(next))),
+    pill: false,
+  );
+
+  Route<void> sdkSettingsPage(Settings next) => page(
+    'Set up this app',
+    SdkSettingsScreen(
+      initial: next,
+      onSave: (saved) async {
         try {
           await SettingsStore().save(saved);
         } on Object catch (e) {
@@ -125,7 +149,7 @@ class _ReferenceAppState extends State<ReferenceApp> {
       flow: flow,
       processId: processId,
       sdkKey: settings.sdkKey,
-      bundleIdentifier: settings.bundleIdentifier,
+      bundleIdentifier: buildBundleIdentifier,
       environment: environment,
       onFinished: (processId) {
         // Only a finished journey is offered as the reference for a step-up.
@@ -156,7 +180,7 @@ class _ReferenceAppState extends State<ReferenceApp> {
     // Every screen is pushed as a route built here, so no route is looked up by name. MaterialApp still asks for
     // a way to build one when it gets a navigatorKey without a home.
     onGenerateRoute: (_) => null,
-    // Incomplete settings open Connect first.
-    onGenerateInitialRoutes: (_) => [unico == null ? connectPage() : formPage()],
+    // Incomplete settings open Welcome first.
+    onGenerateInitialRoutes: (_) => [unico == null ? welcomePage() : formPage()],
   );
 }

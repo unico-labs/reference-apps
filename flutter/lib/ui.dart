@@ -327,7 +327,8 @@ class Field extends StatelessWidget {
     this.lines = 1,
     this.controller,
     this.initial,
-    required this.onChanged,
+    this.readOnly = false,
+    this.onChanged,
   });
 
   final String label;
@@ -340,7 +341,8 @@ class Field extends StatelessWidget {
   final int lines;
   final TextEditingController? controller;
   final String? initial;
-  final ValueChanged<String> onChanged;
+  final bool readOnly;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -352,6 +354,7 @@ class Field extends StatelessWidget {
         controller: controller,
         initialValue: controller == null ? initial : null,
         onChanged: onChanged,
+        readOnly: readOnly,
         keyboardType: keyboard,
         minLines: lines,
         maxLines: lines == 1 ? 1 : lines + 4,
