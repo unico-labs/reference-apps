@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -34,6 +35,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -125,6 +127,13 @@ fun FieldLabel(text: String, api: String? = null, required: Boolean = false) = T
 
 @Composable
 fun Hint(text: String, modifier: Modifier = Modifier) = Text(text, modifier, color = Muted, fontSize = 13.sp)
+
+// A link to the docs, opened in the browser.
+@Composable
+fun Link(text: String, url: String) {
+    val uriHandler = LocalUriHandler.current
+    Text(text, Modifier.clickable { uriHandler.openUri(url) }.padding(vertical = 4.dp), color = Accent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+}
 
 @Composable
 fun Code(text: String) = Text(

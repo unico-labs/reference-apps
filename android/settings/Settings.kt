@@ -28,9 +28,6 @@ data class Settings(
     // Issued by Unico's Onboarding team for your application ID:
     // https://developer.unico.io/developers/sdks-and-tools/android/installation/specific-setup
     val sdkKey: String = "",
-    // The application ID the SDK key was issued for. Defaults to this build's own (see SettingsStore.load);
-    // editable only so a demo can try a key issued for another ID.
-    val bundleIdentifier: String = "",
     val privateKeyPem: String = "",
 ) {
     val hosts get() = Hosts(identity = identityHost.trimEnd('/'), api = apiHost.trimEnd('/'))
@@ -38,14 +35,16 @@ data class Settings(
     // The `iss` claim: https://developer.unico.io/developers/start/authentication
     val serviceAccount get() = "$account@$tenant.iam.acesso.io"
 
-    val isComplete get() =
-        listOf(identityHost, apiHost, account, tenant, sdkKey, bundleIdentifier, privateKeyPem).all { it.isNotBlank() }
+    // What step 1 of setup takes. Step 2 adds the SDK key.
+    val hasCredentials get() = listOf(identityHost, apiHost, account, tenant, privateKeyPem).all { it.isNotBlank() }
+
+    val isComplete get() = hasCredentials && sdkKey.isNotBlank()
 
     // Keeps the key out of logs and crash reports.
     override fun toString() = "Settings(identityHost=$identityHost, apiHost=$apiHost, account=$account, tenant=$tenant)"
 }
 
-// A key copied from an email often loses its PEM header or arrives in another format. Check it when it's saved,
+// A key copied from an email often loses its PEM header or arrives in another format. Check it on Verify credentials,
 // so the error names what was found instead of failing on the first token request.
 fun parsePrivateKey(pem: String): PrivateKey {
     val header = Regex("-----BEGIN ([A-Z ]+)-----").find(pem)?.groupValues?.get(1)
@@ -59,7 +58,7 @@ fun parsePrivateKey(pem: String): PrivateKey {
     return KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(Base64.getMimeDecoder().decode(base64)))
 }
 
-class SettingsStore(private val context: Context) {
+class SettingsStore(context: Context) {
     private val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     fun load(): Settings = Settings(
@@ -68,7 +67,6 @@ class SettingsStore(private val context: Context) {
         account = prefs.getString("account", "")!!,
         tenant = prefs.getString("tenant", "")!!,
         sdkKey = prefs.getString("sdkKey", "")!!,
-        bundleIdentifier = prefs.getString("bundleIdentifier", null) ?: context.packageName,
         // If the Keystore key is gone (app data cleared, device reset), the key has to be entered again.
         privateKeyPem = prefs.getString("privateKey", null)?.let { runCatching { decrypt(it) }.getOrNull() }.orEmpty(),
     )
@@ -80,7 +78,6 @@ class SettingsStore(private val context: Context) {
             .putString("account", settings.account)
             .putString("tenant", settings.tenant)
             .putString("sdkKey", settings.sdkKey)
-            .putString("bundleIdentifier", settings.bundleIdentifier)
             .putString("privateKey", encrypt(settings.privateKeyPem))
             .apply()
     }

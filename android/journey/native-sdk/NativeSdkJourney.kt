@@ -98,16 +98,14 @@ class UnicoConfig(private val bundleIdentifier: String, private val sdkKey: Stri
     override fun getHostKey(): String = sdkKey
 }
 
-// `sdkKey` comes from Unico's Onboarding team, linked to `bundleIdentifier`. In a real app that's your own
-// application ID (activity.packageName); this demo lets Settings override it. `flow` and `processId` are only shown
-// on the page behind the camera.
+// `sdkKey` comes from Unico's Onboarding team, linked to this build's application ID (activity.packageName).
+// `flow` and `processId` are only shown on the page behind the camera.
 @Composable
 fun NativeSdkJourney(
     webAppToken: String,
     flow: String,
     processId: String,
     sdkKey: String,
-    bundleIdentifier: String,
     sdk: NativeSdk,
     onFinished: (processId: String) -> Unit,
     onBack: () -> Unit,
@@ -120,7 +118,7 @@ fun NativeSdkJourney(
     fun end(message: String) = scope.launch { state = JourneyState.Ended(message) }
     fun describe(errorBio: ErrorBio?) = "SDK error ${errorBio?.code}: ${errorBio?.description}"
 
-    val unicoConfig = UnicoConfig(bundleIdentifier, sdkKey)
+    val unicoConfig = UnicoConfig(activity.packageName, sdkKey)
 
     val callback = object : AcessoBioListener {
         override fun onErrorAcessoBio(errorBio: ErrorBio?) {
