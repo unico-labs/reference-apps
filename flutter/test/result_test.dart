@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import '../result/verdict.dart';
+import 'package:unico_reference/result/verdict.dart';
 
 void main() {
   test('PROCESS_RESULT_OK reads Success in green', () {

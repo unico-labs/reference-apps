@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import '../app/main.dart';
-import '../settings/settings.dart';
+import 'package:unico_reference/main.dart';
+import 'package:unico_reference/settings/settings.dart';
 
 void main() {
   testWidgets('opens Connect when the device has no credentials', (tester) async {

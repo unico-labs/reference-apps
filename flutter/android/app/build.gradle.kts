@@ -18,7 +18,7 @@ android {
     defaultConfig {
         // The native SDK only opens for the application ID that Unico linked to your SDK key:
         // https://developer.unico.io/developers/sdks-and-tools/flutter/installation/specific-setup
-        // Change it to yours before running, and keep bundleIdentifier in app/main.dart equal to it.
+        // Change it to yours before running, and keep buildBundleIdentifier in lib/settings/settings.dart equal to it.
         applicationId = "io.unico.reference"
         // Flutter's default (24) is above the SDK's minimum of 21:
         // https://developer.unico.io/developers/sdks-and-tools/flutter/installation

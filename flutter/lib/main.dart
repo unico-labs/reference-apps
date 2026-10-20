@@ -3,13 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:unico_check/unico_check.dart' show UnicoEnvironment;
 
-import '../api/unico.dart';
-import '../flows/form_screen.dart';
-import '../journey/native-sdk/native_sdk_journey.dart';
-import '../result/evidence_set_screen.dart';
-import '../result/result_screen.dart';
-import '../settings/settings.dart';
-import '../settings/settings_screen.dart';
+import 'api/unico.dart';
+import 'flows/form_screen.dart';
+import 'journey/native-sdk/native_sdk_journey.dart';
+import 'result/evidence_set_screen.dart';
+import 'result/result_screen.dart';
+import 'settings/settings.dart';
+import 'settings/settings_screen.dart';
 import 'ui.dart';
 
 Future<void> main() async {

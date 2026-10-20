@@ -17,7 +17,7 @@ ios/       SwiftUI
 flutter/   Flutter
 ```
 
-Inside each app:
+Inside each app (on Flutter, under `lib/`):
 
 | Folder | Contents |
 |---|---|

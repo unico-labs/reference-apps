@@ -12,7 +12,7 @@ dependencies:
   # Unico's official Flutter plugin: the native SDK that opens the journey with the webAppToken.
   # https://developer.unico.io/developers/sdks-and-tools/flutter/installation
   unico_check: ^4.63.0
-  # RS256 JWT for the token request (demo only, see api/unico.dart). The Dart counterpart of jsonwebtoken in the docs.
+  # RS256 JWT for the token request (demo only, see lib/api/unico.dart). The Dart counterpart of jsonwebtoken in the docs.
   dart_jsonwebtoken: ^3.4.1
   http: ^1.6.0
   # Demo credentials in the Android Keystore / iOS Keychain.

@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:pointycastle/export.dart';
 
-import '../api/unico.dart';
+import 'package:unico_reference/api/unico.dart';
 
 AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateKeys() {
   final random = FortunaRandom()
