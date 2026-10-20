@@ -6,12 +6,12 @@ One SwiftUI app that creates a process, opens the journey with Unico's native SD
 
 ## Run
 
-Requires a Mac with Xcode 16 or later, [XcodeGen](https://github.com/yonaskolb/XcodeGen), an **iPhone** (the SDK refuses simulators) and:
+Requires a Mac with Xcode 16 or later (as the SDK's [requirements](https://developer.unico.io/developers/sdks-and-tools/ios/requirements) ask), [XcodeGen](https://github.com/yonaskolb/XcodeGen) (tested with 2.46.0), an **iPhone** (the SDK refuses simulators) and:
 
 - UAT credentials: unique account name, tenant ID and `.pem` private key, as in [Authentication](https://developer.unico.io/developers/start/authentication). The app builds the JWT `iss` from the first two; See the root [README](../README.md#credentials);
 - an SDK key from Unico's Onboarding team, linked to the app's Bundle Identifier and Team ID. Set `PRODUCT_BUNDLE_IDENTIFIER` and `DEVELOPMENT_TEAM` in [`project.yml`](project.yml) to the ones Unico linked.
 
-The Xcode project is generated from `project.yml`, so it stays readable in review:
+The app runs on iOS 17 and later because its SwiftUI screens need it; the SDK itself supports iOS 13, so your app can go lower. The Xcode project and `app/Info.plist` are generated from `project.yml`, so they stay readable in review:
 
 ```sh
 brew install xcodegen

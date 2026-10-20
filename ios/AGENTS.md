@@ -18,15 +18,15 @@ One SwiftUI app with a `NavigationStack`. It creates the process, opens the jour
 | `flows/FormScreen.swift` | Run a flow: the flow typed by name, the document, a preview of the request, the Customize sheet, and the error screen with the response as returned | Reference for your own screens |
 | `journey/native-sdk/` | Asks for the camera, opens the SDK with the `webAppToken`, returns the `processId` from `onSuccess`, and sends the user to Settings when the camera is denied. Behind the camera, the page shows the journey in progress, then why it stopped. Imports nothing from the other folders | Reference for opening the journey on iOS |
 | `result/` | One `GET` for the process and one for the selfie. A heading names the result in words (`PROCESS_RESULT_OK` as Success, in `Verdict.swift`) and the JSON is shown raw; the evidence set fetched when opened and drawn with PDFKit | Reference for the calls after `onSuccess` |
-| `app/` | The `App` and navigation, `Ui.swift` (colors and shared pieces of the screens), `Info.plist` and `Assets.xcassets` (the launch screen logo) | Glue; the navigation and look are yours |
+| `app/` | The `App` and navigation, `Ui.swift` (colors and shared pieces of the screens), `Info.plist` (generated from `project.yml`) and `Assets.xcassets` (the launch screen logo) | Glue; the navigation and look are yours |
 | `test/` | Swift Testing tests for `api/` against a local fake of Unico (a `URLProtocol`), for `flows/Flows.swift` and for `result/Verdict.swift` | Reference for testing your client |
-| `project.yml`, `Package.swift` | `xcodegen generate` builds the app project from `project.yml`. `Package.swift` exists only so `swift test` runs the tests on a Mac | Build files |
+| `project.yml`, `Package.swift` | `xcodegen generate` builds the app project and `app/Info.plist` from `project.yml`; edit the plist keys there, since the file is rewritten. `Package.swift` exists only so `swift test` runs the tests on a Mac | Build files |
 
 ## The flow, end to end
 
 1. The form builds the body with `callbackUri` set to `/`, which the docs ask for when the native SDK handles the return in-app.
 2. `Unico.createProcess` returns `{ process }`. The app takes `process.webAppToken`.
-3. `journey/native-sdk/` checks the camera with `AVCaptureDevice`, builds `AcessoBioManager` with a view controller, its delegate and the environment, calls `prepareSelfieCamera` with the SDK key, and in `onCameraReady` calls `open(_:webAppToken:)`.
+3. When the app starts, `NativeSdk` (in `journey/native-sdk/`) builds `AcessoBioManager` with a view controller, its delegate and the environment, as [Initialization](https://developer.unico.io/developers/sdks-and-tools/ios/initialization) asks: its authentication takes a few seconds, so doing it on the button tap reads as lag. The journey checks the camera with `AVCaptureDevice`, calls `prepareSelfieCamera` with the SDK key, and in `onCameraReady` calls `open(_:webAppToken:)`.
 4. When the journey ends, the SDK calls `onSuccess(SuccessResult)`. The app dismisses the SDK's screen, reads `processId` and moves to the result.
 5. `result/` makes one `GET` for the process and one for the selfie. The evidence set is one `GET` when the user opens it. No polling and no webhook.
 
@@ -38,7 +38,7 @@ Treat this app as a reference, not as code to copy file by file. Read how each p
 - The journey runs only in the native SDK. Don't open `userRedirectUrl` in a `WKWebView`, `SFSafariViewController`, `ASWebAuthenticationSession` or Safari.
 - On UIKit, the same steps live in a `UIViewController`: it is the SDK's `viewController`, it can be the delegate, and it presents the journey. `journey/native-sdk/` hosts a plain `UIViewController` behind the SwiftUI view for that.
 - The SDK key from Unico's Onboarding team is linked to your Bundle Identifier and Team ID. Set both in `project.yml`, or the SDK refuses to start.
-- The SDK environment must match the hosts the process was created on: `.UAT` for UAT, `.PROD` for production. The SDK defaults to `.PROD`, so set it.
+- The SDK environment must match the hosts the process was created on: `.UAT` for UAT, `.PROD` for production. The docs don't say which environment the SDK uses when none is set, so always set it.
 - Add `NSCameraUsageDescription` to `Info.plist`, ask for the camera before opening the SDK, and give the user a way to Settings when the permission is denied (error `73706`). iOS asks only once.
 - Keep the capture in portrait: the SDK cancels in landscape (`73708`) or upside down (`73709`). This app is portrait-only.
 - The SDK doesn't run on simulators (error `73006`). Use an iPhone.

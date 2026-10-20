@@ -18,9 +18,42 @@ private enum JourneyState {
     var isOpening: Bool { if case .opening = self { true } else { false } }
 }
 
+// https://developer.unico.io/developers/sdks-and-tools/ios/initialization
+// Build this once when the app starts, not when the user taps to start: the SDK's authentication with the backend
+// takes a few seconds, and doing it together with the camera opening reads as lag. The app builds it at launch.
+// `environment` must match the hosts the process was created on: .UAT or .PROD.
+@MainActor
+final class NativeSdk {
+    let environment: EnvironmentEnum
+    // The SDK presents its screens from this controller, which each journey places behind its SwiftUI view.
+    let host = UIViewController()
+    fileprivate let camera: AcessoBioCameraDelegate
+    // AcessoBioManager keeps one delegate for its whole life, so it forwards to whichever journey is on screen.
+    fileprivate let listener = SessionListener()
+    private let manager: AcessoBioManager
+
+    init(environment: EnvironmentEnum) {
+        self.environment = environment
+        manager = AcessoBioManager(viewController: host, delegate: listener)!
+        manager.setEnvironment(environment)
+        camera = manager.build()
+    }
+}
+
+// https://developer.unico.io/developers/sdks-and-tools/ios/api-reference/callback-listener-interfaces
+// The journey on screen sets `session` on the main actor and the SDK reads it from its callbacks; one runs at a time.
+fileprivate final class SessionListener: NSObject, AcessoBioManagerDelegate, @unchecked Sendable {
+    weak var session: JourneySession?
+
+    func onErrorAcessoBioManager(_ error: ErrorBio!) { session?.fail(error) }
+    func onUserClosedCameraManually() { session?.finish(.ended("The journey was closed before it finished.")) }
+    func onSystemClosedCameraTimeoutSession() { session?.finish(.ended("The capture session timed out.")) }
+    // The SDK switches to manual capture and the journey goes on.
+    func onSystemChangedTypeCameraTimeoutFaceInference() {}
+}
+
 // `sdkKey` comes from Unico's Onboarding team, linked to `bundleIdentifier` and your Team ID. In a real app that's
 // your own Bundle.main.bundleIdentifier; this demo lets Connect override it.
-// `environment` must match the hosts the process was created on: .UAT or .PROD.
 // `flow` and `processId` are only shown on the page behind the camera.
 struct NativeSdkJourney: View {
     let webAppToken: String
@@ -28,15 +61,13 @@ struct NativeSdkJourney: View {
     let processId: String
     let sdkKey: String
     let bundleIdentifier: String
-    let environment: EnvironmentEnum
+    let sdk: NativeSdk
     let onFinished: (_ processId: String) -> Void
     let onBack: () -> Void
 
     @State private var state = JourneyState.opening
     @State private var session: JourneySession?
     @State private var started = false
-    // The SDK presents its screens from this controller, which sits behind the SwiftUI view.
-    @State private var host = UIViewController()
     @Environment(\.openURL) private var openURL
 
     // The page behind the SDK's camera: what the person sees while the journey runs, and after it stops.
@@ -82,7 +113,7 @@ struct NativeSdkJourney: View {
             }
         }
         .background(Color(red: 0.96, green: 0.97, blue: 0.98))
-        .background(HostView(controller: host))
+        .background(HostView(controller: sdk.host))
         .navigationBarBackButtonHidden(state.isOpening)
         // onAppear runs again when the SDK's screen goes away, so the journey opens once, behind a flag.
         .onAppear {
@@ -143,7 +174,7 @@ struct NativeSdkJourney: View {
     }
 
     private func open() {
-        let session = JourneySession(host: host, sdkKey: sdkKey, bundleIdentifier: bundleIdentifier, webAppToken: webAppToken) { outcome in
+        let session = JourneySession(host: sdk.host, sdkKey: sdkKey, bundleIdentifier: bundleIdentifier, webAppToken: webAppToken) { outcome in
             switch outcome {
             case .finished(let processId): onFinished(processId)
             case .cameraDenied: state = .cameraDenied
@@ -151,7 +182,8 @@ struct NativeSdkJourney: View {
             }
         }
         self.session = session
-        session.open(environment: environment)
+        sdk.listener.session = session
+        sdk.camera.prepareSelfieCamera(session, config: session)
     }
 }
 
@@ -170,7 +202,6 @@ private final class JourneySession: NSObject {
     private let bundleIdentifier: String
     private let webAppToken: String
     private let onEnd: (Outcome) -> Void
-    private var manager: AcessoBioManager?
     private var ended = false
 
     init(host: UIViewController, sdkKey: String, bundleIdentifier: String, webAppToken: String, onEnd: @escaping (Outcome) -> Void) {
@@ -179,16 +210,6 @@ private final class JourneySession: NSObject {
         self.bundleIdentifier = bundleIdentifier
         self.webAppToken = webAppToken
         self.onEnd = onEnd
-    }
-
-    // https://developer.unico.io/developers/sdks-and-tools/ios/initialization
-    // The docs suggest building the SDK at app start, since its first authentication takes a few seconds.
-    // It's built here so the whole mode stays in this folder.
-    func open(environment: EnvironmentEnum) {
-        let manager = AcessoBioManager(viewController: host, delegate: self)!
-        manager.setEnvironment(environment)
-        manager.build().prepareSelfieCamera(self, config: self)
-        self.manager = manager
     }
 
     // The SDK leaves closing its screen to the caller, so whatever it presented is dismissed here:
@@ -218,15 +239,6 @@ private final class JourneySession: NSObject {
 extension JourneySession: AcessoBioConfigDataSource {
     nonisolated func getBundleIdentifier() -> String { bundleIdentifier }
     nonisolated func getHostKey() -> String { sdkKey }
-}
-
-// https://developer.unico.io/developers/sdks-and-tools/ios/api-reference/callback-listener-interfaces
-extension JourneySession: AcessoBioManagerDelegate {
-    nonisolated func onErrorAcessoBioManager(_ error: ErrorBio!) { fail(error) }
-    nonisolated func onUserClosedCameraManually() { finish(.ended("The journey was closed before it finished.")) }
-    nonisolated func onSystemClosedCameraTimeoutSession() { finish(.ended("The capture session timed out.")) }
-    // The SDK switches to manual capture and the journey goes on.
-    nonisolated func onSystemChangedTypeCameraTimeoutFaceInference() {}
 }
 
 extension JourneySession: SelfieCameraDelegate {

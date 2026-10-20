@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Unico Reference App</string>
 	<key>CFBundleExecutable</key>
@@ -22,19 +22,15 @@
 	<string>1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<!-- https://developer.unico.io/developers/sdks-and-tools/ios/installation (step 2) -->
 	<key>NSCameraUsageDescription</key>
 	<string>The journey takes a selfie to verify your identity.</string>
-	<!-- The launch screen: the Unico wordmark on white, from Assets.xcassets. -->
 	<key>UILaunchScreen</key>
 	<dict>
-		<key>UIImageName</key>
-		<string>UnicoLogo</string>
 		<key>UIColorName</key>
 		<string>LaunchBackground</string>
+		<key>UIImageName</key>
+		<string>UnicoLogo</string>
 	</dict>
-	<!-- The SDK cancels the session in landscape (73708) or upside down (73709):
-	     https://developer.unico.io/developers/sdks-and-tools/ios/requirements -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

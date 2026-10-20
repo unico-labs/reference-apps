@@ -17,6 +17,10 @@ private enum Route: Hashable {
     case evidenceSet(processId: String)
 }
 
+// The SDK environment follows the hosts in Connect: PROD hosts open the PROD journey, anything else UAT.
+@MainActor
+private func sdkEnvironment(_ settings: Settings) -> EnvironmentEnum { settings.hosts == .prod ? .PROD : .UAT }
+
 // DEMO ONLY: the app builds the Unico client on the device. In production, your server does.
 private func makeUnico(_ settings: Settings) -> Unico? {
     guard settings.isComplete, let key = try? parsePrivateKey(settings.privateKeyPem) else { return nil }
@@ -27,6 +31,8 @@ private struct Root: View {
     private let store = SettingsStore()
     @State private var settings: Settings
     @State private var unico: Unico?
+    // Built at launch, as the docs ask, and again only if Connect changes the environment.
+    @State private var sdk: NativeSdk
     @State private var path: [Route] = []
     // The last journey finished here, offered as the reference for a step-up.
     @State private var lastProcessId: String?
@@ -38,6 +44,7 @@ private struct Root: View {
         let settings = store.load()
         _settings = State(initialValue: settings)
         _unico = State(initialValue: makeUnico(settings))
+        _sdk = State(initialValue: NativeSdk(environment: sdkEnvironment(settings)))
     }
 
     var body: some View {
@@ -92,8 +99,7 @@ private struct Root: View {
                 processId: processId,
                 sdkKey: settings.sdkKey,
                 bundleIdentifier: settings.bundleIdentifier,
-                // The SDK environment follows the hosts in Connect: PROD hosts open the PROD journey, anything else UAT.
-                environment: settings.hosts == .prod ? .PROD : .UAT,
+                sdk: sdk,
                 onFinished: { processId in
                     // Only a finished journey is offered as the reference for a step-up.
                     lastProcessId = processId
@@ -142,6 +148,7 @@ private struct Root: View {
         try store.save(saved)
         settings = saved
         unico = makeUnico(saved)
+        if sdk.environment != sdkEnvironment(saved) { sdk = NativeSdk(environment: sdkEnvironment(saved)) }
         path = []
     }
 }
@@ -153,11 +160,16 @@ private extension View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 // The pill carries its own background, so on iOS 26 it skips the toolbar's glass.
+                // compiler(>=6.2): Xcode 26 and later, whose SDK has the API. #available: the device runs iOS 26.
+                #if compiler(>=6.2)
                 if #available(iOS 26, *) {
                     ToolbarItem(placement: .topBarTrailing) { trailing() }.sharedBackgroundVisibility(.hidden)
                 } else {
                     ToolbarItem(placement: .topBarTrailing) { trailing() }
                 }
+                #else
+                ToolbarItem(placement: .topBarTrailing) { trailing() }
+                #endif
             }
             .toolbarBackground(.white, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
