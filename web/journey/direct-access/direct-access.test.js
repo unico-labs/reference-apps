@@ -27,7 +27,7 @@ test('redirects to userRedirectUrl exactly as returned', async () => {
 });
 
 test('names the mode Redirect on the form', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
 
   assert.match(page, /value="direct-access"[^>]*\/> Redirect<\/label>/);
 });

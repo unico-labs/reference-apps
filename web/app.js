@@ -1,5 +1,6 @@
 // Routes of the web app. Every page is rendered here, on the server, which also talks to Unico:
-//   GET  /                 create-process form, the flow typed by name (?references={id} prefills a step-up)
+//   GET  /                 welcome page: what the app does and the server's configuration, checked with a token
+//   GET  /run              create-process form, the flow typed by name (?references={id} prefills a step-up)
 //   GET  /flows/flows.js   the body builder, served to the request preview on the form
 //   POST /process          creates the process and opens the journey with the mode named in `journey`
 //   GET  /result           the callbackUri: process JSON and selfie
@@ -48,11 +49,25 @@ export function createApp({ unico, publicUrl, env, serviceAccount }) {
   app.use(express.static(`${import.meta.dirname}/public`));
   app.locals.journeys = journeys;
   app.locals.publicUrl = publicUrl;
-  app.locals.account = serviceAccount.split('@')[0];
+  // The service account is `<account>@<tenant>.iam.acesso.io`.
+  const [account, host] = serviceAccount.split('@');
+  const tenant = host.split('.')[0];
+  app.locals.account = account;
   app.locals.connection = `${env.toUpperCase()} · ${app.locals.account}`;
   for (const journey of journeys.values()) journey.register?.(app);
 
-  app.get('/', (req, res) => {
+  app.get('/', async (_req, res) => {
+    // Asking for a token proves the service account and key work before anyone fills in the form.
+    let tokenError;
+    try {
+      await unico.accessToken();
+    } catch (err) {
+      tokenError = describe(err);
+    }
+    res.render('welcome', { env, tenant, tokenError });
+  });
+
+  app.get('/run', (req, res) => {
     // ?references={id} comes from "Try step-up" on the result page and turns the reference on. Without it, the
     // reference still holds the last process, ready for when the user turns it on.
     const { references } = req.query;

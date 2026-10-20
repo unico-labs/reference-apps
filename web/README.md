@@ -21,7 +21,7 @@ Fill in `.env` with your service account. The server exits with a message if a v
 npm start
 ```
 
-Open http://localhost:3000, type the name of a flow your account has (see [Flows](https://developer.unico.io/developers/start/flows)) and fill in the form with your own document. The page previews the request as you type, and Customize holds the optional and extra fields.
+Open http://localhost:3000. The welcome page shows the service account, tenant and environment from `.env`, and asks Unico for a token to check them: **Ready** means the credentials work; otherwise the page shows Unico's answer as returned. Select **Get started**, type the name of a flow your account has (see [Flows](https://developer.unico.io/developers/start/flows)) and fill in the form with your own document. The page previews the request as you type, and Customize holds the optional and extra fields.
 
 The Journeys SDK only opens on a domain registered for the environment you use, over HTTPS. Register your domains with the Unico support team, as the [Web SDK](https://developer.unico.io/developers/sdks-and-tools/web) page says. If the widget doesn't open, check the browser console: `Domain not allowed` means the domain isn't registered. The SDK doesn't throw, so the page shows no error. Close DevTools before the capture: the capture treats open DevTools as a fraud signal and blocks the submission.
 
@@ -64,7 +64,7 @@ try {
 }
 ```
 
-`getProcess(id)` returns `{ process: { id, state, result, ... } }`. `getSelfie(id)` and `getEvidenceSet(id)` return `{ fileContents, contentType }`, with the file in base64. Every non-2xx answer from Unico throws a `UnicoError` with the status and body as returned. A malformed process id throws an `InvalidInputError` before anything is sent.
+`accessToken()` returns the cached token, or requests a new one. `getProcess(id)` returns `{ process: { id, state, result, ... } }`. `getSelfie(id)` and `getEvidenceSet(id)` return `{ fileContents, contentType }`, with the file in base64. Every non-2xx answer from Unico throws a `UnicoError` with the status and body as returned. A malformed process id throws an `InvalidInputError` before anything is sent.
 
 ## Code
 

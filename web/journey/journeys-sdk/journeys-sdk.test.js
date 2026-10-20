@@ -33,7 +33,7 @@ test('serves unico-journey-sdk from node_modules as an ES module', async () => {
 });
 
 test('names the mode Journeys SDK on the form', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
 
   assert.match(page, /value="journeys-sdk"[^>]*\/> Journeys SDK<\/label>/);
 });
@@ -45,7 +45,7 @@ test('shows the journey in progress behind the widget, with the flow and the pro
   assert.match(page, /<dd><code>idlive_r2<\/code><\/dd>/);
   assert.match(page, /<dd><code>abc-123<\/code><\/dd>/);
   assert.match(page, /<dd>Journeys SDK<\/dd>/);
-  assert.match(page, /<a class="button secondary" href="\/">Cancel test<\/a>/);
+  assert.match(page, /<a class="button secondary" href="\/run">Cancel test<\/a>/);
 });
 
 test('has a not finished state that starts a new test when the widget is closed', async () => {
@@ -53,6 +53,6 @@ test('has a not finished state that starts a new test when the widget is closed'
 
   assert.match(page, /<section id="closed"[^>]*hidden/);
   assert.match(page, /Journey not finished/);
-  assert.match(page, /<a class="button" href="\/">Start a new test<\/a>/);
+  assert.match(page, /<a class="button" href="\/run">Start a new test<\/a>/);
   assert.doesNotMatch(page, /Open journey again/);
 });
