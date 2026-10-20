@@ -217,3 +217,17 @@ private func base64URLDecode(_ part: Substring) -> Data {
     #expect(throws: SettingsError.self) { try parsePrivateKey(pem.replacingOccurrences(of: "PRIVATE KEY", with: "RSA PRIVATE KEY")) }
     #expect(throws: SettingsError.self) { try parsePrivateKey("not a key") }
 }
+
+@Test func settingsAreCompleteWithoutAnAppId() {
+    let settings = Settings(account: "my-account", tenant: "abc123", sdkKey: "sdk-key", privateKeyPem: "-----BEGIN PRIVATE KEY-----")
+
+    #expect(settings.isComplete)
+    #expect(!Settings(account: "my-account", tenant: "abc123", privateKeyPem: "-----BEGIN PRIVATE KEY-----").isComplete)
+}
+
+@Test func settingsWithoutCredentialsAreNotSaved() {
+    let settings = Settings(sdkKey: "sdk-key")
+
+    #expect(!settings.hasCredentials)
+    #expect(throws: SettingsError.self) { try SettingsStore().save(settings) }
+}

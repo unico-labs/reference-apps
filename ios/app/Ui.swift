@@ -144,6 +144,15 @@ struct KeyValue: View {
     }
 }
 
+// A link to a docs page, opened in the browser.
+struct DocLink: View {
+    let title: String
+    let url: String
+    var body: some View {
+        Link(title, destination: URL(string: url)!).font(.subheadline.bold()).foregroundStyle(Color.accent)
+    }
+}
+
 struct Pill: View {
     let text: String
     let ink: Color
