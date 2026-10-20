@@ -67,3 +67,12 @@ for (const url of ['localhost:3000', 'ftp://example.com', 'not a url']) {
     assert.match(stderr, /PUBLIC_URL/);
   });
 }
+
+for (const account of ['my-account', 'my-account@abc123', 'my-account@abc123.example.com']) {
+  test(`refuses to start with UNICO_SERVICE_ACCOUNT=${account}`, () => {
+    const { status, stderr } = startWithKey('account.pem', privateKey, { UNICO_SERVICE_ACCOUNT: account });
+
+    assert.equal(status, 1);
+    assert.match(stderr, /UNICO_SERVICE_ACCOUNT must look like <account_name>@<tenant_id>\.iam\.acesso\.io/);
+  });
+}

@@ -83,6 +83,8 @@ export function createUnico({ serviceAccount, privateKey, hosts }) {
   }
 
   return {
+    // https://developer.unico.io/developers/start/authentication → the access token string, renewed when 10 minutes or less remain
+    accessToken: token,
     // https://developer.unico.io/developers/api-reference/post-processes → { process }
     createProcess: async (body) => call('POST', '/client/v1/process', body),
     // https://developer.unico.io/developers/api-reference/get-process → { process }

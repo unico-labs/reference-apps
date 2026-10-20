@@ -1,7 +1,7 @@
 <%- include('partials/head', { title: 'Result' }) %>
 <% if (!locals.process) { %>
 <h1>Result</h1>
-<p>No process in this browser yet. <a href="/">Run a flow</a> to create one.</p>
+<p>No process in this browser yet. <a href="/run">Run a flow</a> to create one.</p>
 <% } else { %>
 <%
   // The heading only names the result the API returned (https://developer.unico.io/developers/api-reference/get-process):
@@ -72,8 +72,8 @@
   <% } %>
 
   <div class="dock">
-    <div class="actions"><a class="button" href="/?references=<%= processId %>">Try step-up on this process</a></div>
-    <div class="actions"><a class="button secondary" href="/">Run another flow</a></div>
+    <div class="actions"><a class="button" href="/run?references=<%= processId %>">Try step-up on this process</a></div>
+    <div class="actions"><a class="button secondary" href="/run">Run another flow</a></div>
   </div>
 </div>
 <% } %>

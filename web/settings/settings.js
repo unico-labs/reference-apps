@@ -34,6 +34,13 @@ export function loadSettings(env) {
   if (!Object.hasOwn(HOSTS, UNICO_ENV) || !UNICO_SERVICE_ACCOUNT || !UNICO_PRIVATE_KEY_PATH) {
     fail('Set UNICO_ENV (uat or prod), UNICO_SERVICE_ACCOUNT and UNICO_PRIVATE_KEY_PATH. See .env.example.');
   }
+  // The JWT's iss, from https://developer.unico.io/developers/start/authentication. The docs hand out the account
+  // name and the tenant ID separately, so a value with only one of them is a common mistake.
+  if (!/^[^@]+@[^.@]+\.iam\.acesso\.io$/.test(UNICO_SERVICE_ACCOUNT)) {
+    fail(
+      `UNICO_SERVICE_ACCOUNT must look like <account_name>@<tenant_id>.iam.acesso.io (got: ${UNICO_SERVICE_ACCOUNT}).`,
+    );
+  }
 
   // Where browsers reach this app. It builds the callbackUri, so it must be the address users actually see.
   const publicUrl = (env.PUBLIC_URL ?? `http://localhost:${PORT}`).replace(/\/+$/, '');

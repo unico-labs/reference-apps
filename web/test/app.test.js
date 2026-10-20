@@ -17,8 +17,51 @@ beforeEach(() => {
 const person = (journey = journeys[0], flow = 'idlive_r2') =>
   new URLSearchParams({ flow, duiType: 'DUI_TYPE_BR_CPF', duiValue: '12345678909', journey });
 
-test('asks for the flow by name on the home page', async () => {
+test('opens on a welcome page with the server configuration and a link to the form', async () => {
   const res = await app.get('/');
+  const page = await res.text();
+
+  assert.equal(res.status, 200);
+  assert.match(page, /See how a Unico integration works/);
+  assert.match(page, /Run a real flow in UAT\./);
+  assert.match(page, /<dt>Service account<\/dt><dd><code>my-account<\/code><\/dd>/);
+  assert.match(page, /<dt>Tenant ID<\/dt><dd><code>abc123<\/code><\/dd>/);
+  assert.match(page, /<dt>Environment<\/dt><dd><code>UAT<\/code><\/dd>/);
+  assert.match(page, /<a class="button" href="\/run">Get started<\/a>/);
+  assert.doesNotMatch(page, /PRIVATE KEY/);
+});
+
+test('says on the welcome page that Unico gave the server a token', async () => {
+  const page = await (await app.get('/')).text();
+
+  assert.match(page, /<dt>Status<\/dt><dd><span class="pill">[\s\S]*Ready<\/span><\/dd>/);
+});
+
+test('shows on the welcome page the token error raw when Unico refuses the credentials', async () => {
+  const refused = await startApp({ token: [401, { error: 'invalid_grant', error_description: '<b>bad</b>' }] });
+  const page = await (await refused.get('/')).text();
+  refused.close();
+
+  assert.doesNotMatch(page, /Ready</);
+  assert.match(page, /Couldn.t get a token/);
+  assert.match(page, /HTTP 401/);
+  assert.match(page, /&lt;b&gt;bad&lt;\/b&gt;/);
+  assert.match(
+    page,
+    /Check <code>UNICO_ENV<\/code>, <code>UNICO_SERVICE_ACCOUNT<\/code> and <code>UNICO_PRIVATE_KEY_PATH<\/code>/,
+  );
+  assert.doesNotMatch(page, /<span class="pill"><svg/);
+});
+
+test('says on the welcome page that the credentials stay on the server', async () => {
+  const page = await (await app.get('/')).text();
+
+  assert.match(page, /<b>Credentials stay on your server<\/b>/);
+  assert.match(page, /The server reads them from its <code>.env<\/code>\. Nothing to enter here\./);
+});
+
+test('asks for the flow by name on the form', async () => {
+  const res = await app.get('/run');
   const page = await res.text();
 
   assert.equal(res.status, 200);
@@ -27,33 +70,33 @@ test('asks for the flow by name on the home page', async () => {
 });
 
 test('only the flow is required', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
 
   assert.equal([...page.matchAll(/\srequired[\s/>]/g)].length, 1);
   assert.equal([...page.matchAll(/class="req"/g)].length, 1);
 });
 
 test('shows the environment and the service account in the header', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
 
   assert.match(page, /UAT · my-account/);
 });
 
 test('names the app Run a flow in the header', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
 
-  assert.match(page, /<a class="bar-title" href="\/">Run a flow<\/a>/);
+  assert.match(page, /<a class="bar-title" href="\/run">Run a flow<\/a>/);
 });
 
 test('leaves the demo notice out of the form', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
 
   assert.doesNotMatch(page, /class="notice"/);
   assert.doesNotMatch(page, /Updates as you type|Web only|Start test stays disabled/);
 });
 
 test('offers one choice per journey mode on the form', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
 
   assert.deepEqual(
     [...page.matchAll(/<input[^>]*type="radio" name="journey" value="([^"]+)"/g)].map((match) => match[1]).sort(),
@@ -62,20 +105,20 @@ test('offers one choice per journey mode on the form', async () => {
 });
 
 test('prefills a step-up on a process from the link on the result page', async () => {
-  const page = await (await app.get('/?references=abc-123')).text();
+  const page = await (await app.get('/run?references=abc-123')).text();
 
   assert.match(page, /name="withReferences"[^>]*checked/);
   assert.match(page, /name="referenceProcessId"[^>]*value="abc-123"/);
 });
 
 test('shows the request preview in the page, not in Customize', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
 
   assert.ok(page.indexOf('id="preview"') < page.indexOf('<dialog'));
 });
 
 test('offers the useCase values from the docs in a select', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
 
   assert.match(
     page,
@@ -84,7 +127,7 @@ test('offers the useCase values from the docs in a select', async () => {
 });
 
 test('fills the reference with the last process without turning it on', async () => {
-  const page = await (await app.get('/', { Cookie: 'unico_process_id=abc-123' })).text();
+  const page = await (await app.get('/run', { Cookie: 'unico_process_id=abc-123' })).text();
 
   assert.match(page, /name="referenceProcessId"[^>]*value="abc-123"/);
   assert.match(page, /Filled from your last test/);
@@ -92,7 +135,7 @@ test('fills the reference with the last process without turning it on', async ()
 });
 
 test('labels each field in words, with its name in the Create Process body', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
   const labels = [...page.matchAll(/<span class="label">([^<]+)<code class="api">([^<]+)<\/code>/g)].map((m) => [
     m[1].trim(),
     m[2],
@@ -154,7 +197,7 @@ test('refuses an unknown journey mode before creating the process', async () => 
 });
 
 test('does not name the framework in its responses', async () => {
-  const res = await app.get('/');
+  const res = await app.get('/run');
 
   assert.equal(res.headers.get('x-powered-by'), null);
 });
@@ -200,7 +243,7 @@ test('shows a Create Process error on its own screen, with the form kept hidden 
 });
 
 test('shows the form when there is no error', async () => {
-  const page = await (await app.get('/')).text();
+  const page = await (await app.get('/run')).text();
 
   assert.match(page, /<div id="run">/);
   assert.doesNotMatch(page, /Couldn.t start the test/);
@@ -224,7 +267,7 @@ test('shows the process and the selfie on the result page', async () => {
 test('leads the result page with the verdict and offers a step-up on the process', async () => {
   const page = await (await app.get('/result', { Cookie: 'unico_process_id=abc-123' })).text();
 
-  assert.match(page, /href="\/\?references=abc-123"/);
+  assert.match(page, /href="\/run\?references=abc-123"/);
 });
 
 test('shows PROCESS_RESULT_OK as a green Success, with the flow and how long it took', async () => {

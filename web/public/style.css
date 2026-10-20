@@ -353,11 +353,28 @@ select {
 
 .rows dd {
   margin: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .result {
   display: grid;
   gap: 14px;
+}
+
+.steps {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.steps li > * {
+  display: block;
+}
+
+.steps .hint {
+  margin: 0;
 }
 
 .result .verdict {
@@ -616,7 +633,8 @@ dialog::backdrop {
   #process-form,
   .failed,
   .journey,
-  .result {
+  .result,
+  .welcome {
     display: flex;
     flex-direction: column;
   }
@@ -630,7 +648,8 @@ dialog::backdrop {
   #process-form,
   .failed,
   .journey,
-  .result {
+  .result,
+  .welcome {
     flex: 1;
     width: 100%;
   }

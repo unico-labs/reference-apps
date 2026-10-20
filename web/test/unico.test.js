@@ -133,6 +133,16 @@ test('reuses the token while it is far from expiring', async () => {
   assert.equal(tokenRequests.length, 1);
 });
 
+test('returns the access token on its own and reuses it for the calls', async () => {
+  const client = unico();
+
+  assert.equal(await client.accessToken(), 'token-1');
+  await client.getProcess('abc-123');
+
+  assert.equal(tokenRequests.length, 1);
+  assert.equal(apiRequests[0].authorization, 'Bearer token-1');
+});
+
 test('renews the token when 10 minutes or less remain', async () => {
   tokenResponse.body = (n) => ({ access_token: `token-${n}`, token_type: 'Bearer', expires_in: 600 });
   const client = unico();
